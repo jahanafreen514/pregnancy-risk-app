@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Styles */
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+  overflow-x: hidden;
+}
+
+/* Light Mode */
+body.light {
+  background: #fff5f7;
+  color: #333;
+}
+
+/* Dark Mode */
+body.dark {
+  background: #0f172a;
+  color: white;
+}
+
+/* Glassmorphism Card */
+.card {
+  @apply bg-white/70 backdrop-blur-xl rounded-3xl p-5 shadow-xl border border-white/30;
+}
+
+/* Gradient Button */
+.btn {
+  @apply bg-gradient-to-r from-pink-400 via-rose-400 to-green-400 text-white px-5 py-3 rounded-xl shadow-lg hover:scale-105 transition-all duration-300;
+}
+
+/* Background Animation */
+@keyframes bgMove {
+  0% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.75;
+  }
+
+  50% {
+    transform: scale(1.1) translate(-20px, -20px);
+    opacity: 0.95;
+  }
+
+  100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.75;
+  }
+}
+
+.animate-bgMove {
+  animation: bgMove 15s ease-in-out infinite;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 1s ease forwards;
+}
+
+/* Floating Cards */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Card Hover Effect */
+.feature-card {
+  transition: all 0.35s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Soft Floating Background Dots */
+@keyframes pulseSoft {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.animate-pulseSoft {
+  animation: pulseSoft 3s infinite;
+}
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
