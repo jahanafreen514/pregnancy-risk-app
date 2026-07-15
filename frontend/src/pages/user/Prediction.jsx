@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
+  FaFileMedical,
   FaArrowLeft,
   FaChartLine,
   FaRobot,
@@ -33,30 +34,100 @@ function Prediction() {
     vitals: {},
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [heartRate, setHeartRate] = useState(78);
+  const [bloodPressure, setBloodPressure] = useState("120/80");
 
   useEffect(() => {
     const loadRisk = () => {
-      const currentUser =
-  JSON.parse(localStorage.getItem("currentUser")) || {};
+      try {
+        const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
 
-const saved =
-  JSON.parse(
-    localStorage.getItem(`riskData_${currentUser.email}`)
-  ) || {
-    risk: "Low",
-    score: 15,
-    confidence: 95,
-    symptoms: [],
-    riskFactors: [],
-    vitals: {},
-  };
+        // Load risk data
+        const saved = JSON.parse(
+          localStorage.getItem(`riskData_${currentUser.email}`)
+        ) || {
+          risk: "Low",
+          score: 15,
+          confidence: 95,
+          symptoms: [],
+          riskFactors: [],
+          vitals: {},
+        };
+
+        // Load heart rate from localStorage
+        let hr = 78;
+        const heartRateData = localStorage.getItem("heartRate");
+        if (heartRateData) {
+          try {
+            const parsed = JSON.parse(heartRateData);
+            if (typeof parsed === 'number' && parsed > 0) {
+              hr = parsed;
+            } else if (typeof parsed === 'string' && !isNaN(parsed)) {
+              hr = Number(parsed);
+            }
+          } catch (e) {
+            const num = Number(heartRateData);
+            if (!isNaN(num) && num > 0) hr = num;
+          }
+        }
+        // Also check vitals for heart rate
+        if (saved.vitals?.heartRate && saved.vitals.heartRate > 0) {
+          hr = saved.vitals.heartRate;
+        }
+        setHeartRate(hr);
+
+        // Load blood pressure from vitals
+        if (saved.vitals?.bpSystolic && saved.vitals?.bpDiastolic) {
+          setBloodPressure(`${saved.vitals.bpSystolic}/${saved.vitals.bpDiastolic}`);
+        }
+
+        // SEND PATIENT PREDICTION DATA TO DOCTOR DASHBOARD
+        const doctorUpdates = JSON.parse(localStorage.getItem("doctorPatientUpdates")) || [];
+
+        const existingIndex = doctorUpdates.findIndex(
+          (p) => p.email === currentUser.email
+        );
+
+        const updateData = {
+          patient: currentUser.name,
+          email: currentUser.email,
+          risk: saved.risk,
+          score: saved.score,
+          confidence: saved.confidence,
+          symptoms: saved.symptoms,
+          riskFactors: saved.riskFactors,
+          vitals: saved.vitals,
+          heartRate: hr,
+          updatedAt: new Date().toLocaleString()
+        };
+
+        if (existingIndex !== -1) {
+          doctorUpdates[existingIndex] = updateData;
+        } else {
+          doctorUpdates.push(updateData);
+        }
+
+        localStorage.setItem("doctorPatientUpdates", JSON.stringify(doctorUpdates));
+
+        setRiskData(saved);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadRisk();
 
+    // Auto-refresh every 3 seconds
+    const interval = setInterval(loadRisk, 3000);
+    
     window.addEventListener("storage", loadRisk);
 
-    return () => window.removeEventListener("storage", loadRisk);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", loadRisk);
+    };
   }, []);
 
   const getTheme = () => {
@@ -157,35 +228,35 @@ const saved =
 
       {/* SIDEBAR - FIXED FULL HEIGHT */}
       <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
-              <Link to="/dashboard" className="block">
-                <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
-                <p className="text-sm text-gray-500">Maternal Health System</p>
-              </Link>
-      
-              <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-                <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"  />
-                <NavItem label="Monitoring" icon={<FaStethoscope />} to="/monitor" />
-                <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
-                <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
-                <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
-                <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" active/>
-                <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
-                <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
-                <NavItem label="Profile" icon={<FaUser />} to="/profile" />
-              </div>
-      
-              <div className="pt-4 border-t border-pink-100/50">
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("currentUser");
-                    window.location.href = "/login";
-                  }}
-                  className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
+          <p className="text-sm text-gray-500">Maternal Health System</p>
+        </Link>
+
+        <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"  />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
+          <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
+          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
+          <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" active/>
+          <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
+          <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+        </div>
+
+        <div className="pt-4 border-t border-pink-100/50">
+          <button
+            onClick={() => {
+              localStorage.removeItem("currentUser");
+              window.location.href = "/login";
+            }}
+            className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       {/* MAIN CONTENT - SCROLLABLE */}
       <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
@@ -194,7 +265,7 @@ const saved =
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
               <FaRobot className="text-pink-500" />
-              AI Pregnancy Prediction
+              ML Pregnancy Prediction
               <span className="text-sm font-normal text-gray-500 bg-pink-50 px-3 py-1 rounded-full">
                 {theme.emoji} {theme.status}
               </span>
@@ -232,7 +303,7 @@ const saved =
                     <FaRobot />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800">AI Risk Analysis</h2>
+                    <h2 className="text-3xl font-bold text-gray-800">ML Risk Analysis</h2>
                     <p className="text-gray-500">Machine Learning Based Assessment</p>
                   </div>
                 </div>
@@ -261,7 +332,7 @@ const saved =
 
                 <div className="mt-6">
                   <div className="flex justify-between mb-2">
-                    <span className="font-semibold text-gray-700">AI Confidence</span>
+                    <span className="font-semibold text-gray-700">ML Confidence</span>
                     <span className="font-bold text-gray-800">{riskData.confidence}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
@@ -299,7 +370,7 @@ const saved =
                       <span className={`${theme.text} font-bold`}>{theme.emoji} {riskData.risk}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-pink-50">
-                      <span className="text-gray-500">AI Score</span>
+                      <span className="text-gray-500">ML Score</span>
                       <span className="font-bold text-gray-800">{riskData.score}%</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-pink-50">
@@ -339,15 +410,18 @@ const saved =
               </div>
             </div>
 
-            {/* ANALYTICS */}
+            {/* ANALYTICS - NOW WITH DYNAMIC HEART RATE */}
             <div className="grid lg:grid-cols-3 gap-6 mb-6">
               <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-lg p-6 hover:shadow-2xl transition-all duration-500 border border-white/70 hover:-translate-y-1">
                 <div className="w-14 h-14 rounded-full bg-pink-100 flex items-center justify-center mb-4">
                   <FaHeartbeat className="text-3xl text-pink-500" />
                 </div>
                 <h3 className="font-bold text-xl text-gray-800">Heart Rate</h3>
-                <p className="text-4xl font-bold mt-2 text-pink-500">78 BPM</p>
-                <p className="text-gray-500 mt-2 text-sm">Stable heartbeat detected.</p>
+                <p className="text-4xl font-bold mt-2 text-pink-500">{heartRate} BPM</p>
+                <p className="text-gray-500 mt-2 text-sm">
+                  {heartRate >= 60 && heartRate <= 100 ? "Normal range" : 
+                   heartRate > 100 ? "Elevated - Monitor" : "Low - Consult doctor"}
+                </p>
               </div>
 
               <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-lg p-6 hover:shadow-2xl transition-all duration-500 border border-white/70 hover:-translate-y-1">
@@ -356,7 +430,7 @@ const saved =
                 </div>
                 <h3 className="font-bold text-xl text-gray-800">Blood Pressure</h3>
                 <p className="text-4xl font-bold mt-2 text-sky-500">
-                  {riskData.vitals?.bpSystolic || "120"}/{riskData.vitals?.bpDiastolic || "80"}
+                  {bloodPressure}
                 </p>
                 <p className="text-gray-500 mt-2 text-sm">Within normal range.</p>
               </div>
@@ -366,8 +440,14 @@ const saved =
                   <FaBaby className="text-3xl text-pink-500" />
                 </div>
                 <h3 className="font-bold text-xl text-gray-800">Baby Status</h3>
-                <p className="text-4xl font-bold mt-2 text-pink-500">Healthy</p>
-                <p className="text-gray-500 mt-2 text-sm">Growth progressing normally.</p>
+                <p className="text-4xl font-bold mt-2 text-pink-500">
+                  {riskData.risk === "High" ? "Monitoring" : 
+                   riskData.risk === "Moderate" ? "Checkups" : "Healthy"}
+                </p>
+                <p className="text-gray-500 mt-2 text-sm">
+                  {riskData.risk === "High" ? "Needs attention" : 
+                   riskData.risk === "Moderate" ? "Regular monitoring" : "Progressing normally"}
+                </p>
               </div>
             </div>
 
@@ -405,7 +485,7 @@ const saved =
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center">
                   <FaRobot className="text-white text-2xl animate-pulse" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">AI Recommendations</h2>
+                <h2 className="text-2xl font-bold text-gray-800">ML Recommendations</h2>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -439,7 +519,7 @@ const saved =
                   <div>
                     <h2 className="text-3xl font-bold">Doctor's Advice</h2>
                     <p className="text-white/90 mt-1 text-sm">
-                      AI predictions are for assistance only and should not replace professional medical advice.
+                      ML predictions are for assistance only and should not replace professional medical advice.
                     </p>
                   </div>
                 </div>

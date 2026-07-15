@@ -5,6 +5,7 @@ import heroMother from "../../assets/images/hero-mother.png";
 import bg from "../../assets/images/bg.png";
 import {
   FaHeartbeat,
+  FaFileMedical,
   FaTint,
   FaWeight,
   FaBaby,
@@ -57,28 +58,109 @@ const Dashboard = () => {
     score: 15,
     confidence: 95,
     symptoms: [],
+    riskFactors: [],
   });
 
   const [water, setWater] = useState(0);
   const [medicines, setMedicines] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [heartRate, setHeartRate] = useState(78);
+  const [healthScore, setHealthScore] = useState(92);
+
+  const loadDashboardData = () => {
+    // Load user
+    const user = JSON.parse(localStorage.getItem("currentUser"));
+    if (user) setCurrentUser(user);
+
+    // Load risk data (user-specific)
+    const savedRisk = JSON.parse(
+      localStorage.getItem(`riskData_${user?.email}`)
+    ) || JSON.parse(localStorage.getItem("riskData")) || {
+      risk: "Low",
+      score: 15,
+      confidence: 95,
+      symptoms: [],
+      riskFactors: [],
+    };
+    setRiskData(savedRisk);
+
+    // Load water intake
+    setWater(Number(localStorage.getItem("waterIntake")) || 0);
+
+    // Load medications
+    setMedicines(JSON.parse(localStorage.getItem("medications")) || []);
+
+    // Load heart rate
+    const hr = JSON.parse(localStorage.getItem("heartRate")) || 78;
+    setHeartRate(hr);
+
+    // Load appointments
+    const allAppointments = JSON.parse(localStorage.getItem("appointments")) || [];
+    const userAppointments = allAppointments.filter(
+      (app) => app.patientEmail === user?.email
+    );
+    setAppointments(userAppointments);
+
+    // Calculate health score
+    calculateHealthScore(savedRisk, water, medicines);
+  };
+
+  const calculateHealthScore = (risk, water, meds) => {
+    let score = 92;
+    if (risk) {
+      if (risk.risk === "High") {
+        score = 100 - (risk.score || 0) * 0.7;
+      } else if (risk.risk === "Moderate" || risk.risk === "Medium") {
+        score = 100 - (risk.score || 0) * 0.4;
+      } else if (risk.risk === "Low") {
+        score = 100 - (risk.score || 0) * 0.2;
+      }
+    }
+    if (water < 6) score -= 5;
+    if (water > 8) score += 3;
+    const takenMeds = meds?.filter(m => m.taken).length || 0;
+    if (takenMeds > 0) score += 2;
+    setHealthScore(Math.min(100, Math.max(0, Math.round(score))));
+  };
 
   useEffect(() => {
-    const loadDashboardData = () => {
-      const savedRisk = JSON.parse(localStorage.getItem("riskData"));
-      if (savedRisk) setRiskData(savedRisk);
-      setWater(Number(localStorage.getItem("waterIntake")) || 0);
-      setMedicines(JSON.parse(localStorage.getItem("medications")) || []);
-      
-      const user = JSON.parse(localStorage.getItem("currentUser"));
-      if (user) setCurrentUser(user);
-    };
-
     loadDashboardData();
     const interval = setInterval(loadDashboardData, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const getRiskColor = (risk) => {
+    switch (risk) {
+      case "High": return "text-red-500";
+      case "Moderate": return "text-orange-500";
+      case "Medium": return "text-orange-500";
+      case "Low": return "text-green-500";
+      default: return "text-green-500";
+    }
+  };
+
+  const getRiskEmoji = (risk) => {
+    switch (risk) {
+      case "High": return "🔴";
+      case "Moderate": return "🟠";
+      case "Medium": return "🟠";
+      case "Low": return "🟢";
+      default: return "🟢";
+    }
+  };
+
+  // Get upcoming appointment
+  const getUpcomingAppointment = () => {
+    if (appointments.length === 0) return null;
+    const sorted = [...appointments].sort((a, b) => 
+      new Date(a.date) - new Date(b.date)
+    );
+    return sorted[0];
+  };
+
+  const upcomingApp = getUpcomingAppointment();
 
   return (
     <div
@@ -110,7 +192,7 @@ const Dashboard = () => {
 
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
           <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" active />
-          <NavItem label="Monitoring" icon={<FaStethoscope />} to="/monitor" />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
@@ -137,13 +219,33 @@ const Dashboard = () => {
       <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
         
         {/* Top Bar */}
-        <div className="flex flex-wrap justify-end items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
-          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100 hover:shadow-md transition-all duration-300">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
+          <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm shadow-lg animate-pulse">
               {currentUser?.name?.charAt(0).toUpperCase() || "U"}
             </div>
-            <span className="text-sm font-medium text-gray-700 hidden sm:inline">
-              {currentUser?.name?.split(" ")[0] || "User"}
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">
+                Welcome back, {currentUser?.name?.split(" ")[0] || "User"}! 👋
+              </h2>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-gray-500">Health Score:</span>
+                <span className="font-bold text-pink-500">{healthScore}%</span>
+                <span className="text-gray-300">|</span>
+                <span className={`font-medium ${getRiskColor(riskData.risk)}`}>
+                  {getRiskEmoji(riskData.risk)} {riskData.risk} Risk
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100 hover:shadow-md transition-all duration-300">
+            <FaClock className="text-pink-400 text-sm" />
+            <span className="text-xs text-gray-500">
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+              })}
             </span>
           </div>
         </div>
@@ -155,7 +257,7 @@ const Dashboard = () => {
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500/10 to-sky-400/10 px-4 py-2 rounded-full border border-pink-200/30 animate-pulse">
                 <FaRocket className="text-pink-500 text-sm" />
                 <span className="text-sm font-semibold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
-                  AI Powered Maternal Care
+                  ML Powered Maternal Care
                 </span>
               </div>
 
@@ -168,18 +270,19 @@ const Dashboard = () => {
               </h2>
 
               <p className="text-gray-600 mt-4 text-base lg:text-lg leading-relaxed">
-                Monitor pregnancy health, track symptoms, view AI predictions,
+                Monitor pregnancy health, track symptoms, view ML predictions,
                 and manage appointments from a single dashboard.
               </p>
 
               <div className="flex flex-wrap gap-4 mt-6">
                 <Link
-                  to="/monitor"
+                  to="/profile"
                   className="group/btn bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-pink-300/50 hover:scale-105 transition-all duration-300 flex items-center gap-2"
                 >
-                  Start Monitoring
+                  View Profile
                   <FaArrowRight className="group-hover/btn:translate-x-1 transition-transform" />
-                </Link>
+                </Link> 
+
 
                 <Link
                   to="/prediction"
@@ -195,7 +298,7 @@ const Dashboard = () => {
                   <p className="text-sm font-bold text-pink-500">24/7</p>
                 </div>
                 <div className="bg-gradient-to-r from-sky-50 to-sky-100/50 backdrop-blur-sm rounded-xl p-3 text-center hover:scale-105 transition-all duration-300">
-                  <p className="text-xs text-gray-500">AI Risk</p>
+                  <p className="text-xs text-gray-500">ML Risk</p>
                   <p className="text-sm font-bold text-sky-500">98%</p>
                 </div>
                 <div className="bg-gradient-to-r from-purple-50 to-purple-100/50 backdrop-blur-sm rounded-xl p-3 text-center hover:scale-105 transition-all duration-300">
@@ -237,7 +340,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm opacity-90 flex items-center gap-1">
                     <span className="text-yellow-300">✨</span>
-                    AI Risk Assessment
+                    ML Risk Assessment
                   </p>
                   <h3 className="text-3xl font-bold flex items-center gap-2">
                     {riskData.risk}
@@ -286,6 +389,14 @@ const Dashboard = () => {
                     {symptom}
                   </span>
                 ))}
+                {riskData.riskFactors?.length > 0 && riskData.riskFactors.map((factor, index) => (
+                  <span
+                    key={`factor-${index}`}
+                    className="bg-red-300/30 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm hover:scale-105 transition-all duration-300 cursor-default"
+                  >
+                    ⚠️ {factor}
+                  </span>
+                ))}
               </div>
             )}
           </div>
@@ -293,10 +404,10 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <Stat icon={<FaHeartbeat />} label="Heart Rate" value="78 bpm" color="pink" />
+          <Stat icon={<FaHeartbeat />} label="Heart Rate" value={`${heartRate} bpm`} color="pink" />
           <Stat icon={<FaTint />} label="Blood Pressure" value="120/80" color="sky" />
           <Stat icon={<FaWeight />} label="Weight" value="68 kg" color="pink" />
-          <Stat icon={<FaBaby />} label="Baby Growth" value="Normal" color="sky" />
+          <Stat icon={<FaBaby />} label="Baby Growth" value={riskData.risk === "High" ? "Monitoring" : "Normal"} color="sky" />
           <Stat icon={<FaTint />} label="Water Intake" value={`${water}/10`} color="sky" />
           <Stat icon={<FaPills />} label="Medicines" value={medicines.length} color="pink" />
         </div>
@@ -351,9 +462,16 @@ const Dashboard = () => {
               Today's Alerts
             </h3>
             <div className="space-y-3">
-              <AlertItem icon="💧" text="Drink Water Reminder" time="Now" color="pink" />
-              <AlertItem icon="💊" text="Take Prenatal Supplements" time="10:00 AM" color="sky" />
-              <AlertItem icon="🧘" text="15 Min Yoga Session" time="4:00 PM" color="purple" />
+              <AlertItem icon="💧" text={`Water Reminder - ${water}/10 glasses`} time="Now" color="pink" />
+              {medicines.filter(m => !m.taken).length > 0 && (
+                <AlertItem icon="💊" text={`Take ${medicines.filter(m => !m.taken).length} medication(s)`} time="Pending" color="sky" />
+              )}
+              {riskData.risk === "High" && (
+                <AlertItem icon="⚠️" text="High risk detected - Consult doctor" time="Urgent" color="red" />
+              )}
+              {riskData.risk === "Moderate" && (
+                <AlertItem icon="📋" text="Moderate risk - Monitor symptoms" time="Today" color="orange" />
+              )}
             </div>
           </div>
 
@@ -362,18 +480,28 @@ const Dashboard = () => {
               <FaCalendarAlt className="text-pink-500" />
               Upcoming Appointment
             </h3>
-            <div className="bg-gradient-to-r from-pink-50 to-sky-50 p-4 rounded-2xl hover:scale-105 transition-all duration-300">
-              <p className="font-semibold text-gray-800 text-lg">Dr. Priya Sharma</p>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  <FaClock className="text-pink-400" />
-                  June 25, 2026
-                </span>
-                <span className="text-pink-500 font-semibold bg-pink-100 px-3 py-1 rounded-full">
-                  10:30 AM
-                </span>
+            {upcomingApp ? (
+              <div className="bg-gradient-to-r from-pink-50 to-sky-50 p-4 rounded-2xl hover:scale-105 transition-all duration-300">
+                <p className="font-semibold text-gray-800 text-lg">{upcomingApp.doctor}</p>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <FaClock className="text-pink-400" />
+                    {upcomingApp.date}
+                  </span>
+                  <span className="text-pink-500 font-semibold bg-pink-100 px-3 py-1 rounded-full">
+                    {upcomingApp.time}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">{upcomingApp.type}</p>
               </div>
-            </div>
+            ) : (
+              <div className="bg-gradient-to-r from-pink-50 to-sky-50 p-4 rounded-2xl text-center">
+                <p className="text-gray-500">No upcoming appointments</p>
+                <Link to="/appointment" className="text-sm text-pink-500 font-semibold hover:underline">
+                  Book an appointment →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -383,7 +511,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style >{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(3deg); }
@@ -421,12 +549,25 @@ const Stat = ({ icon, label, value, color }) => (
   </div>
 );
 
-const AlertItem = ({ icon, text, time, color }) => (
-  <div className={`flex items-center gap-3 bg-${color}-50/80 backdrop-blur-sm p-3 rounded-xl hover:bg-${color}-100 hover:scale-[1.02] transition-all duration-300 cursor-pointer border border-${color}-100/50`}>
-    <span className="text-2xl">{icon}</span>
-    <span className="text-sm font-medium text-gray-700 flex-1">{text}</span>
-    <span className={`text-xs text-${color}-500 bg-white/50 px-2 py-1 rounded-full`}>{time}</span>
-  </div>
-);
+const AlertItem = ({ icon, text, time, color }) => {
+  const colorMap = {
+    pink: "bg-pink-50 border-pink-200 text-pink-600",
+    sky: "bg-sky-50 border-sky-200 text-sky-600",
+    red: "bg-red-50 border-red-200 text-red-600",
+    orange: "bg-orange-50 border-orange-200 text-orange-600",
+    green: "bg-green-50 border-green-200 text-green-600",
+    purple: "bg-purple-50 border-purple-200 text-purple-600",
+  };
+  
+  const bgColor = colorMap[color] || colorMap.pink;
+  
+  return (
+    <div className={`flex items-center gap-3 ${bgColor} backdrop-blur-sm p-3 rounded-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border`}>
+      <span className="text-2xl">{icon}</span>
+      <span className="text-sm font-medium flex-1">{text}</span>
+      <span className={`text-xs bg-white/50 px-2 py-1 rounded-full ${color === "red" ? "text-red-500" : color === "orange" ? "text-orange-500" : "text-gray-500"}`}>{time}</span>
+    </div>
+  );
+};
 
 export default Dashboard;

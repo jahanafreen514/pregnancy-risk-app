@@ -337,11 +337,11 @@ const Login = () => {
                       <span className="text-xs text-gray-500">Remember me</span>
                     </div>
                     <Link
-                      to="/forgot-password"
-                      className="text-sm text-pink-500 hover:text-pink-600 font-medium transition-colors"
-                    >
-                      Forgot Password?
-                    </Link>
+  to="/forgot-password"
+  className="text-sm text-pink-500 hover:text-pink-600 font-medium transition-colors"
+>
+  Forgot Password?
+</Link>
                   </div>
 
                   {/* Submit Button */}
@@ -394,7 +394,7 @@ const Login = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style >{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }

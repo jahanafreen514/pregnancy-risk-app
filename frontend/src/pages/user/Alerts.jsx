@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
+  FaFileMedical,
   FaStethoscope,
   FaBaby,
   FaNotesMedical,
@@ -175,7 +176,12 @@ function Alerts() {
       ></div>
 
       {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
+    <div
+  className="fixed left-0 top-0 z-40 w-64 h-screen
+             bg-white/80 backdrop-blur-2xl
+             border-r border-pink-100/50
+             p-5 flex flex-col shadow-xl"
+>
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
@@ -183,7 +189,7 @@ function Alerts() {
 
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
           <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" />
-          <NavItem label="Monitoring" icon={<FaStethoscope />} to="/monitor" />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
@@ -206,8 +212,7 @@ function Alerts() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      {/* MAIN CONTENT */}<div className="relative z-10 ml-64 flex-1 px-6 py-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
           <div className="flex items-center gap-5">

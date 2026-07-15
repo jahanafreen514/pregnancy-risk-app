@@ -11,15 +11,15 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaUserMd,
-  FaUserCog,
+  FaStethoscope,
+  FaHospital,
   FaUsers,
-  FaDatabase,
+  FaCalendarAlt,
   FaChartLine,
-  FaBell,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 
-const AdminLogin = () => {
+const DoctorLogin = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -48,25 +48,35 @@ const AdminLogin = () => {
 
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const adminEmail = "admin@glowcare.com";
-    const adminPassword = "Admin@123";
+    // Get doctors from localStorage
+    const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+    
+    // Get users with role doctor
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const doctorUsers = users.filter(u => u.role === "doctor");
+    
+    // Combine both lists
+    const allDoctors = [...doctors, ...doctorUsers];
 
-    if (
-      formData.email.toLowerCase() === adminEmail.toLowerCase() &&
-      formData.password === adminPassword
-    ) {
-      const adminUser = {
-        name: "Admin",
-        email: formData.email,
-        role: "admin",
-      };
-      localStorage.setItem("currentUser", JSON.stringify(adminUser));
+    // Find doctor by email and password
+    const doctor = allDoctors.find(
+      (d) =>
+        d.email.toLowerCase() === formData.email.toLowerCase() &&
+        d.password === formData.password
+    );
+
+    if (doctor) {
+      // Store doctor as current user with role
+      localStorage.setItem("currentUser", JSON.stringify({
+        ...doctor,
+        role: "doctor"
+      }));
       setSuccess(true);
       setTimeout(() => {
-        navigate("/admin-dashboard", { replace: true });
+        navigate("/doctor-dashboard");
       }, 800);
     } else {
-      setError("Invalid admin credentials. Please try again.");
+      setError("Invalid doctor credentials. Please try again.");
       setIsLoading(false);
     }
   };
@@ -92,7 +102,7 @@ const AdminLogin = () => {
 
       <div className="relative z-10 w-full max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-[80vh]">
-          {/* LEFT PANEL - Fill all space */}
+          {/* LEFT PANEL */}
           <div className="hidden lg:flex flex-col justify-between space-y-4 h-full">
             <div className="flex items-center gap-4 flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center shadow-xl">
@@ -100,7 +110,7 @@ const AdminLogin = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text text-transparent">
-                  Admin Portal
+                  Doctor Portal
                 </h1>
                 <p className="text-sm text-gray-500">GlowCare Management</p>
               </div>
@@ -108,8 +118,8 @@ const AdminLogin = () => {
 
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-pink-100/50 shadow-lg flex-1 flex flex-col justify-center">
               <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2 mb-4">
-                <FaShieldAlt className="text-pink-500" />
-                Admin Access
+                <FaStethoscope className="text-pink-500" />
+                Doctor Access
               </h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-3 text-sm text-gray-600">
@@ -117,17 +127,17 @@ const AdminLogin = () => {
                     <FaUsers className="text-pink-500 text-sm" />
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">User Management</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Manage all users and patients across the platform</p>
+                    <span className="font-medium text-gray-700">Patient Management</span>
+                    <p className="text-xs text-gray-500 mt-0.5">View and manage all patient records</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-600">
                   <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FaDatabase className="text-sky-500 text-sm" />
+                    <FaCalendarAlt className="text-sky-500 text-sm" />
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Data Management</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Access and manage all health records securely</p>
+                    <span className="font-medium text-gray-700">Appointment Management</span>
+                    <p className="text-xs text-gray-500 mt-0.5">Schedule and manage patient appointments</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-600">
@@ -135,17 +145,17 @@ const AdminLogin = () => {
                     <FaChartLine className="text-purple-500 text-sm" />
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Analytics & Reports</span>
-                    <p className="text-xs text-gray-500 mt-0.5">View platform analytics and generate reports</p>
+                    <span className="font-medium text-gray-700">Health Monitoring</span>
+                    <p className="text-xs text-gray-500 mt-0.5">Track patient health and pregnancy progress</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-600">
                   <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FaBell className="text-green-500 text-sm" />
+                    <FaHospital className="text-green-500 text-sm" />
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Alert Management</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Monitor and manage all system alerts</p>
+                    <span className="font-medium text-gray-700">Medical Reports</span>
+                    <p className="text-xs text-gray-500 mt-0.5">View AI-powered pregnancy risk reports</p>
                   </div>
                 </div>
               </div>
@@ -154,7 +164,7 @@ const AdminLogin = () => {
             <div className="flex items-center justify-center gap-6 text-xs text-gray-400 bg-white/50 backdrop-blur-sm rounded-2xl py-3 px-6 border border-pink-100/50 flex-shrink-0">
               <span className="flex items-center gap-1.5">
                 <FaShieldAlt className="text-pink-400" />
-                Admin Only
+                Doctor Only
               </span>
               <span className="w-px h-5 bg-gray-200"></span>
               <span className="flex items-center gap-1.5">
@@ -163,13 +173,13 @@ const AdminLogin = () => {
               </span>
               <span className="w-px h-5 bg-gray-200"></span>
               <span className="flex items-center gap-1.5">
-                <FaUserCog className="text-purple-400" />
-                Full Control
+                <FaUserMd className="text-purple-400" />
+                Medical Professional
               </span>
             </div>
           </div>
 
-          {/* RIGHT PANEL - Admin Login Card */}
+          {/* RIGHT PANEL - Doctor Login Card */}
           <div className="flex justify-center lg:justify-end items-stretch">
             <div className="relative w-full max-w-md flex items-center">
               <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-2xl opacity-70 animate-pulse"></div>
@@ -185,10 +195,10 @@ const AdminLogin = () => {
                 </div>
 
                 <h2 className="text-2xl font-extrabold text-center bg-gradient-to-r from-pink-500 to-sky-500 bg-clip-text text-transparent">
-                  Admin Login
+                  Doctor Login
                 </h2>
                 <p className="text-center text-gray-500 text-sm mt-1 mb-5">
-                  Sign in to access admin dashboard
+                  Sign in to access doctor dashboard
                 </p>
 
                 {error && (
@@ -208,14 +218,14 @@ const AdminLogin = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Admin Email
+                      Doctor Email
                     </label>
                     <div className="relative group">
                       <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
                       <input
                         type="email"
                         name="email"
-                        placeholder="admin@glowcare.com"
+                        placeholder="doctor@glowcare.com"
                         value={formData.email}
                         onChange={handleChange}
                         required
@@ -247,16 +257,16 @@ const AdminLogin = () => {
                         {showPassword ? <FaEyeSlash className="text-lg" /> : <FaEye className="text-lg" />}
                       </button>
                     </div>
-                    <div className="text-right">
-  <Link
-    to="/forgot-password"
-    className="text-sm text-pink-500 hover:text-pink-600 font-medium transition-colors"
-  >
-    Forgot Password?
-  </Link>
-</div>
+                    <div className="text-right mt-1">
+                      <Link
+                        to="/forgot-password"
+                        className="text-sm text-pink-500 hover:text-pink-600 font-medium transition-colors"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
                     <p className="text-xs text-gray-400 mt-1.5">
-                      Demo: admin@glowcare.com / Admin@123
+                      Demo: doctor@glowcare.com / Doctor@123
                     </p>
                   </div>
 
@@ -272,7 +282,7 @@ const AdminLogin = () => {
                       </>
                     ) : (
                       <>
-                        Admin Sign In
+                        Doctor Sign In
                         <FaArrowRight />
                       </>
                     )}
@@ -281,23 +291,42 @@ const AdminLogin = () => {
 
                 <div className="flex items-center my-4">
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-                  <span className="px-3 text-gray-400 font-medium text-[10px]">Secure Admin Access</span>
+                  <span className="px-3 text-gray-400 font-medium text-[10px]">Secure Doctor Access</span>
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
                 </div>
 
-                <p className="text-center text-gray-600 text-sm">
-                  <Link
-                    to="/login"
-                    className="font-bold text-pink-500 hover:text-pink-600 transition duration-300 inline-flex items-center gap-1 group"
-                  >
-                    User Login
-                    <FaArrowRight className="text-xs group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-center text-gray-600 text-sm">
+                    <Link
+                      to="/login"
+                      className="font-bold text-pink-500 hover:text-pink-600 transition duration-300 inline-flex items-center gap-1 group"
+                    >
+                      User Login
+                      <FaArrowRight className="text-xs group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                    <span className="mx-2 text-gray-300">|</span>
+                    <Link
+                      to="/admin-login"
+                      className="font-bold text-sky-500 hover:text-sky-600 transition duration-300 inline-flex items-center gap-1 group"
+                    >
+                      Admin Login
+                      <FaArrowRight className="text-xs group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Don't have a doctor account?{" "}
+                    <Link
+                      to="/doctor-register"
+                      className="font-medium text-pink-500 hover:text-pink-600 transition-colors"
+                    >
+                      Register as Doctor
+                    </Link>
+                  </p>
+                </div>
 
                 <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-gray-400">
                   <FaShieldAlt className="text-pink-400" />
-                  <span>Restricted to authorized admins only</span>
+                  <span>Restricted to authorized doctors only</span>
                 </div>
               </div>
             </div>
@@ -305,7 +334,7 @@ const AdminLogin = () => {
         </div>
       </div>
 
-      <style >{`
+      <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
@@ -318,4 +347,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin;
+export default DoctorLogin;

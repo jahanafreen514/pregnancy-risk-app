@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   FaBaby,
   FaNotesMedical,
+  FaFileMedical,
   FaUser,
   FaCalendarAlt,
   FaWeight,
@@ -111,6 +112,84 @@ const PregnancyToolkit = () => {
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [healthScore, setHealthScore] = useState(85);
   const [isLoading, setIsLoading] = useState(false);
+  const [riskLevel, setRiskLevel] = useState("Low");
+  const [userWeight, setUserWeight] = useState("68 kg");
+
+  // ===== LOAD ALL DATA =====
+  const loadAllData = () => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    
+    // 1. Load week from localStorage (set by Symptoms page)
+    const savedWeek = localStorage.getItem("pregnancyWeek");
+    if (savedWeek) {
+      const week = parseInt(savedWeek);
+      if (week > 0 && week <= 40) {
+        setCurrentWeek(week);
+      }
+    }
+    
+    // 2. Load risk data
+    const riskData = JSON.parse(
+      localStorage.getItem(`riskData_${currentUser.email}`)
+    ) || JSON.parse(localStorage.getItem("riskData")) || null;
+
+    // 3. Also check riskData vitals for week
+    if (riskData?.vitals?.week) {
+      const weekFromVitals = parseInt(riskData.vitals.week);
+      if (weekFromVitals > 0 && weekFromVitals <= 40) {
+        setCurrentWeek(weekFromVitals);
+      }
+    }
+
+    if (riskData) {
+      setRiskLevel(riskData.risk || "Low");
+      const score = calculateHealthScore(riskData.risk, riskData.score);
+      setHealthScore(score);
+      if (riskData.vitals?.weight) {
+        setUserWeight(`${riskData.vitals.weight} kg`);
+      }
+    }
+
+    // 4. Load heart rate
+    const hr = Number(localStorage.getItem("heartRate")) || 0;
+    if (hr > 0) setHeartRate(hr);
+  };
+
+  // ===== CALCULATE HEALTH SCORE =====
+  const calculateHealthScore = (risk, score) => {
+    let baseScore = 100;
+    
+    if (risk === "High") {
+      baseScore = 100 - (score || 0) * 0.7;
+    } else if (risk === "Moderate" || risk === "Medium") {
+      baseScore = 100 - (score || 0) * 0.4;
+    } else if (risk === "Low") {
+      baseScore = 100 - (score || 0) * 0.2;
+    }
+    
+    return Math.min(100, Math.max(0, Math.round(baseScore)));
+  };
+
+  // ===== GET RISK COLOR =====
+  const getRiskColor = (risk) => {
+    switch(risk) {
+      case "High": return "text-red-500";
+      case "Moderate": return "text-orange-500";
+      case "Medium": return "text-orange-500";
+      case "Low": return "text-green-500";
+      default: return "text-green-500";
+    }
+  };
+
+  const getRiskEmoji = (risk) => {
+    switch(risk) {
+      case "High": return "🔴";
+      case "Moderate": return "🟠";
+      case "Medium": return "🟠";
+      case "Low": return "🟢";
+      default: return "🟢";
+    }
+  };
 
   // ===== HEART RATE CAMERA FUNCTIONS =====
   const startHeartRateMonitoring = async () => {
@@ -118,7 +197,6 @@ const PregnancyToolkit = () => {
       setCameraError(null);
       setHeartRateStatus("📸 Starting camera...");
       
-      // Check if camera is already in use
       if (streamRef.current) {
         stopHeartRateMonitoring();
       }
@@ -181,7 +259,6 @@ const PregnancyToolkit = () => {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
-        // Calculate average red channel intensity
         let total = 0;
         let count = 0;
         for (let i = 0; i < data.length; i += 4) {
@@ -193,15 +270,13 @@ const PregnancyToolkit = () => {
         values.push(avg);
         if (values.length > 100) values.shift();
         
-        // Detect peaks with improved algorithm
         if (values.length > 20) {
           const current = values[values.length - 1];
           const prev = values[values.length - 2];
           const prevPrev = values[values.length - 3];
           
-          // Dynamic threshold based on recent values
           const recentAvg = values.slice(-20).reduce((a, b) => a + b, 0) / Math.min(values.length, 20);
-          const threshold = recentAvg * 0.05 + 5; // Adaptive threshold
+          const threshold = recentAvg * 0.05 + 5;
           
           if (current > prev && prev > prevPrev && current > threshold + 10) {
             const now = Date.now();
@@ -217,14 +292,12 @@ const PregnancyToolkit = () => {
                 const bpm = Math.round(60000 / avgInterval);
                 
                 if (bpm >= 40 && bpm <= 200) {
-                  // Require 3 stable readings before updating
                   if (Math.abs(bpm - lastValidBpm) < 5) {
                     stableReadings++;
                     if (stableReadings >= 3) {
                       setHeartRate(bpm);
                       setHeartRateStatus(`❤️ ${bpm} BPM`);
                       
-                      // Update history
                       setHeartRateHistory(prev => {
                         const newHistory = [...prev, bpm];
                         if (newHistory.length > 10) newHistory.shift();
@@ -236,10 +309,8 @@ const PregnancyToolkit = () => {
                     lastValidBpm = bpm;
                   }
                   
-                  // Auto-stop after getting 5 good readings
                   if (heartRateHistory.length >= 5 && stableReadings >= 3) {
                     setHeartRateStatus(`✅ ${heartRateHistory.length} readings captured`);
-                    // Auto stop after 2 seconds
                     if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
                     stopTimeoutRef.current = setTimeout(() => {
                       if (isMonitoringHeart) {
@@ -272,10 +343,8 @@ const PregnancyToolkit = () => {
 
   const toggleHeartMonitor = async () => {
     if (isMonitoringHeart) {
-      // Stop monitoring
       stopHeartRateMonitoring();
     } else {
-      // Start monitoring
       setIsMonitoringHeart(true);
       setHeartRate(0);
       setHeartRateHistory([]);
@@ -289,19 +358,16 @@ const PregnancyToolkit = () => {
     setIsStopping(true);
     setHeartRateStatus("⏹️ Stopping...");
     
-    // Clear auto-stop timeout
     if (stopTimeoutRef.current) {
       clearTimeout(stopTimeoutRef.current);
       stopTimeoutRef.current = null;
     }
     
-    // Cancel animation frame
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
     
-    // Stop all tracks in the stream
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach(track => {
@@ -314,13 +380,11 @@ const PregnancyToolkit = () => {
       }
     }
     
-    // Clear video source
     if (videoRef.current) {
       videoRef.current.srcObject = null;
       videoRef.current.onloadedmetadata = null;
     }
     
-    // Reset states
     setIsMonitoringHeart(false);
     setIsCameraReady(false);
     setIsStopping(false);
@@ -333,7 +397,7 @@ const PregnancyToolkit = () => {
     showNotification("Heart rate monitoring stopped ⏹️");
   };
 
-  // Cleanup on unmount or tab change
+  // Cleanup
   useEffect(() => {
     return () => {
       if (stopTimeoutRef.current) {
@@ -546,9 +610,16 @@ const PregnancyToolkit = () => {
   const updateWeek = (week) => {
     setCurrentWeek(week);
     setShowWeekSelector(false);
+    // Save week to localStorage so other pages can access it
+    localStorage.setItem("pregnancyWeek", week.toString());
     showNotification(`Updated to week ${week} 📅`);
+    
+    // Recalculate health score
     const newScore = Math.min(95, Math.max(70, 85 + (week - 24) * 0.5));
-    setHealthScore(Math.round(newScore));
+    let adjustedScore = newScore;
+    if (riskLevel === "High") adjustedScore = newScore - 15;
+    else if (riskLevel === "Moderate") adjustedScore = newScore - 8;
+    setHealthScore(Math.min(100, Math.max(0, Math.round(adjustedScore))));
   };
 
   // ===== MOOD FUNCTIONS =====
@@ -603,6 +674,14 @@ const PregnancyToolkit = () => {
     localStorage.setItem("contractions", JSON.stringify(contractions));
   }, [waterIntake, medicines, contractions]);
 
+  // ===== LOAD DATA ON MOUNT & AUTO-REFRESH =====
+  useEffect(() => {
+    loadAllData();
+    
+    const interval = setInterval(loadAllData, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div
       className="relative h-screen overflow-hidden bg-cover bg-center flex"
@@ -630,36 +709,35 @@ const PregnancyToolkit = () => {
 
       {/* SIDEBAR */}
       <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
-             <Link to="/dashboard" className="block">
-               <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
-               <p className="text-sm text-gray-500">Maternal Health System</p>
-             </Link>
-     
-             <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-               <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"/>
-               <NavItem label="Monitoring" icon={<FaStethoscope />} to="/monitor" />
-               <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit"active />
-               <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
-               <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
-               <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
-               <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
-               <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
-               <NavItem label="Profile" icon={<FaUser />} to="/profile" />
-             </div>
-     
-             <div className="pt-4 border-t border-pink-100/50">
-               <button
-                 onClick={() => {
-                   localStorage.removeItem("currentUser");
-                   window.location.href = "/login";
-                 }}
-                 className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
-               >
-                 Logout
-               </button>
-             </div>
-           </div>
-     
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
+          <p className="text-sm text-gray-500">Maternal Health System</p>
+        </Link>
+
+        <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"/>
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" active />
+          <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
+          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
+          <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
+          <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
+          <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+        </div>
+
+        <div className="pt-4 border-t border-pink-100/50">
+          <button
+            onClick={() => {
+              localStorage.removeItem("currentUser");
+              window.location.href = "/login";
+            }}
+            className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       {/* MAIN CONTENT */}
       <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
@@ -707,39 +785,32 @@ const PregnancyToolkit = () => {
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - DYNAMIC */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <QuickStat icon={<FaHeartbeat />} label="Heart Rate" value={heartRate > 0 ? `${heartRate} bpm` : "—"} color="pink" />
-          <QuickStat icon={<FaWeight />} label="Weight" value="68 kg" color="sky" />
-          <QuickStat icon={<FaCalendarAlt />} label="Weeks" value={`${currentWeek}`} color="purple" />
-          <div 
-            className="bg-white/80 backdrop-blur-2xl rounded-2xl p-4 shadow-md border border-white/70 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer relative"
-            onClick={() => setShowMoodSelector(!showMoodSelector)}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-2xl text-green-500"><FaSmile /></span>
-              <p className="text-xs text-gray-500">Mood</p>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-xl font-bold text-gray-800">{getMoodEmoji(mood)}</p>
-              <p className="text-sm font-medium text-gray-600">{mood}</p>
-            </div>
-            {showMoodSelector && (
-              <div className="absolute mt-2 bg-white rounded-2xl shadow-2xl p-3 border border-pink-100 z-50 w-48">
-                <div className="grid grid-cols-2 gap-2">
-                  {["Happy", "Calm", "Tired", "Anxious", "Excited", "Relaxed"].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMoodValue(m)}
-                      className="px-3 py-2 rounded-xl hover:bg-pink-50 text-sm transition-all"
-                    >
-                      {m} {getMoodEmoji(m)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <QuickStat 
+            icon={<FaHeartbeat />} 
+            label="Heart Rate" 
+            value={heartRate > 0 ? `${heartRate} bpm` : "—"} 
+            color="pink" 
+          />
+          <QuickStat 
+            icon={<FaWeight />} 
+            label="Weight" 
+            value={userWeight || "68 kg"} 
+            color="sky" 
+          />
+          <QuickStat 
+            icon={<FaCalendarAlt />} 
+            label="Weeks" 
+            value={`${currentWeek}`} 
+            color="purple" 
+          />
+          <QuickStat 
+            icon={<FaHeart />} 
+            label="Risk Level" 
+            value={riskLevel || "Low"} 
+            color={riskLevel === "High" ? "red" : riskLevel === "Moderate" ? "orange" : "green"} 
+          />
         </div>
 
         {/* Tabs */}
@@ -759,10 +830,18 @@ const PregnancyToolkit = () => {
           {activeTab === "overview" && (
             <>
               <div className="bg-white/80 backdrop-blur-2xl rounded-3xl p-6 shadow-lg border border-white/70">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <FaCalendarAlt className="text-pink-500" />
-                  Week {currentWeek} Overview
-                </h3>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <FaCalendarAlt className="text-pink-500" />
+                    Week {currentWeek} Overview
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Risk Level:</span>
+                    <span className={`font-bold ${getRiskColor(riskLevel)}`}>
+                      {getRiskEmoji(riskLevel)} {riskLevel}
+                    </span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gradient-to-r from-pink-50 to-pink-100/50 rounded-2xl p-4">
                     <p className="text-sm text-gray-500">Trimester</p>
@@ -773,7 +852,14 @@ const PregnancyToolkit = () => {
                     <p className="text-sm text-gray-500">Health Score</p>
                     <p className="text-lg font-bold text-gray-800">{healthScore}%</p>
                     <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div className="bg-gradient-to-r from-pink-500 to-sky-400 h-2 rounded-full" style={{ width: `${healthScore}%` }}></div>
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-1000 ${
+                          healthScore >= 80 ? "bg-green-500" :
+                          healthScore >= 60 ? "bg-yellow-500" :
+                          "bg-red-500"
+                        }`}
+                        style={{ width: `${healthScore}%` }}
+                      />
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-2xl p-4">
@@ -875,7 +961,7 @@ const PregnancyToolkit = () => {
             </div>
           )}
 
-          {/* HEART RATE TAB - Camera Based with Auto-Stop */}
+          {/* HEART RATE TAB */}
           {activeTab === "heartrate" && (
             <div className="bg-white/80 backdrop-blur-2xl rounded-3xl p-6 shadow-lg border border-white/70">
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -899,7 +985,6 @@ const PregnancyToolkit = () => {
                 )}
               </div>
 
-              {/* Camera preview */}
               {isMonitoringHeart && (
                 <div className="bg-gray-900 rounded-2xl p-4 mb-4">
                   <div className="flex items-center justify-center">
@@ -1130,7 +1215,7 @@ const PregnancyToolkit = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideIn {
           from { opacity: 0; transform: translateX(100px); }
           to { opacity: 1; transform: translateX(0); }

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaHeartbeat,
+  FaFileMedical,
   FaNotesMedical,
   FaLightbulb,
   FaUser,
@@ -19,6 +20,7 @@ import {
   FaChartLine,
   FaBell,
   FaUserMd,
+  FaRuler,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 
@@ -45,13 +47,25 @@ function Symptoms() {
     age: "",
     week: "",
     weight: "",
+    prePregnancyWeight: "",
+    height: "",
+    babyCount: "1",
     bpSystolic: "",
     bpDiastolic: "",
     heartRate: "",
     sugar: "",
     temperature: "",
+    babyWeight: "",
+    babyHeartRate: "",
+    cervicalLength: "",
     symptoms: [],
   });
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    setUser(currentUser);
+  }, []);
 
   const updateField = (field, value) => {
     setForm((prev) => ({
@@ -71,11 +85,100 @@ function Symptoms() {
     }
   };
 
+  const checkWeightRisk = () => {
+    const weight = Number(form.weight);
+    const week = Number(form.week);
+    const babies = Number(form.babyCount);
+
+    let risk = 0;
+    let reason = [];
+
+    if (!weight || !week) {
+      return { risk: 0, reason: [] };
+    }
+
+    let minWeight;
+    let maxWeight;
+
+    if (babies === 1) {
+      minWeight = 45 + week * 0.35;
+      maxWeight = 90;
+    } else if (babies === 2) {
+      minWeight = 55 + week * 0.45;
+      maxWeight = 105;
+    } else {
+      minWeight = 60 + week * 0.5;
+      maxWeight = 120;
+    }
+
+    if (weight < minWeight) {
+      risk += 15;
+      reason.push("Low weight for pregnancy stage");
+    }
+
+    if (weight > maxWeight) {
+      risk += 15;
+      reason.push("Excessive weight gain");
+    }
+
+    return {
+      risk,
+      reason,
+    };
+  };
+
+  const checkBabyHealth = () => {
+    const babyWeight = Number(form.babyWeight);
+    const babyHeartRate = Number(form.babyHeartRate);
+    const cervicalLength = Number(form.cervicalLength);
+    const week = Number(form.week);
+    let risk = 0;
+    let reason = [];
+
+    // Baby weight check based on week
+    if (babyWeight && week) {
+      const avgWeight = week * 15 + 100; // Approximate average weight in grams
+      if (babyWeight < avgWeight * 0.7) {
+        risk += 10;
+        reason.push("Baby weight below average");
+      } else if (babyWeight > avgWeight * 1.3) {
+        risk += 5;
+        reason.push("Baby weight above average");
+      }
+    }
+
+    // Baby heart rate check (normal: 110-160 bpm)
+    if (babyHeartRate) {
+      if (babyHeartRate < 110 || babyHeartRate > 160) {
+        risk += 10;
+        reason.push("Abnormal baby heart rate");
+      }
+    }
+
+    // Cervical length check (normal: >25mm)
+    if (cervicalLength) {
+      if (cervicalLength < 25) {
+        risk += 15;
+        reason.push("Short cervical length - risk of preterm labor");
+      }
+    }
+
+    return { risk, reason };
+  };
+
   const handlePrediction = () => {
     setIsLoading(true);
-    
+
     let score = 0;
     let riskFactors = [];
+    const weightCheck = checkWeightRisk();
+    const babyHealth = checkBabyHealth();
+
+    score += weightCheck.risk;
+    riskFactors.push(...weightCheck.reason);
+
+    score += babyHealth.risk;
+    riskFactors.push(...babyHealth.reason);
 
     // Calculate score based on symptoms
     form.symptoms.forEach((item) => {
@@ -123,6 +226,8 @@ function Symptoms() {
       risk,
       confidence: 95,
       vitals: {
+        babyCount: form.babyCount,
+        prePregnancyWeight: form.prePregnancyWeight,
         age: form.age,
         week: form.week,
         weight: form.weight,
@@ -131,10 +236,36 @@ function Symptoms() {
         heartRate: form.heartRate,
         sugar: form.sugar,
         temperature: form.temperature,
-      }
+        babyWeight: form.babyWeight,
+        babyHeartRate: form.babyHeartRate,
+        cervicalLength: form.cervicalLength,
+      },
     };
 
     const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+
+    // Save latest prediction
+    localStorage.setItem(
+      `riskData_${currentUser.email}`,
+      JSON.stringify(riskData)
+    );
+
+    // Send doctor notification
+    sendDoctorNotification(form.symptoms);
+
+    // Save report history
+    const reports =
+      JSON.parse(localStorage.getItem(`reports_${currentUser.email}`)) || [];
+
+    reports.unshift({
+      date: new Date().toLocaleDateString(),
+      ...riskData,
+    });
+
+    localStorage.setItem(
+      `reports_${currentUser.email}`,
+      JSON.stringify(reports)
+    );
 
     // Save risk data with user-specific key
     if (currentUser.email) {
@@ -143,7 +274,6 @@ function Symptoms() {
         JSON.stringify(riskData)
       );
     } else {
-      // Fallback for demo/without login
       localStorage.setItem("riskData", JSON.stringify(riskData));
     }
 
@@ -151,6 +281,26 @@ function Symptoms() {
       setIsLoading(false);
       navigate("/prediction");
     }, 1000);
+  };
+
+  const sendDoctorNotification = (symptoms) => {
+    if (!user) return;
+
+    const notifications =
+      JSON.parse(localStorage.getItem("doctorNotifications")) || [];
+
+    notifications.push({
+      patient: user.name,
+      email: user.email,
+      symptoms: symptoms,
+      message: "New symptoms reported by patient",
+      time: new Date().toLocaleString(),
+    });
+
+    localStorage.setItem(
+      "doctorNotifications",
+      JSON.stringify(notifications)
+    );
   };
 
   return (
@@ -175,15 +325,20 @@ function Symptoms() {
       ></div>
 
       {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
+      <div
+        className="fixed left-0 top-0 z-40 w-64 h-screen
+             bg-white/80 backdrop-blur-2xl
+             border-r border-pink-100/50
+             p-5 flex flex-col shadow-xl"
+      >
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"/>
-          <NavItem label="Monitoring" icon={<FaStethoscope />} to="/monitor" />
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" active />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
@@ -207,7 +362,7 @@ function Symptoms() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 ml-64 flex-1 px-6 py-6">
         {/* Top Bar */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
           <div>
@@ -216,7 +371,7 @@ function Symptoms() {
               Symptoms Assessment
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Fill today's health details for AI risk analysis
+              Fill today's health details for ML risk analysis
             </p>
           </div>
           <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100">
@@ -241,7 +396,7 @@ function Symptoms() {
             <FaUserMd className="text-pink-500" />
             Health Vitals
           </h3>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <InputField
               label="Age (years)"
@@ -264,6 +419,14 @@ function Symptoms() {
               onChange={(e) => updateField("weight", e.target.value)}
               placeholder="e.g., 68"
             />
+            <InputField
+              label="Pre-Pregnancy Weight (kg)"
+              value={form.prePregnancyWeight}
+              icon={<FaWeight className="text-purple-400" />}
+              onChange={(e) => updateField("prePregnancyWeight", e.target.value)}
+              placeholder="e.g., 55"
+            />
+
             <InputField
               label="Heart Rate (bpm)"
               value={form.heartRate}
@@ -298,6 +461,34 @@ function Symptoms() {
               icon={<FaThermometerHalf className="text-orange-400" />}
               onChange={(e) => updateField("temperature", e.target.value)}
               placeholder="e.g., 36.5"
+            />
+            <InputField
+              label="Number of Babies"
+              value={form.babyCount}
+              icon={<FaBaby className="text-pink-400" />}
+              onChange={(e) => updateField("babyCount", e.target.value)}
+              placeholder="1 / 2 / 3"
+            />
+            <InputField
+              label="Baby Weight (grams)"
+              value={form.babyWeight}
+              icon={<FaWeight className="text-pink-400" />}
+              onChange={(e) => updateField("babyWeight", e.target.value)}
+              placeholder="e.g., 2500"
+            />
+            <InputField
+              label="Baby Heart Rate (bpm)"
+              value={form.babyHeartRate}
+              icon={<FaHeartbeat className="text-red-400" />}
+              onChange={(e) => updateField("babyHeartRate", e.target.value)}
+              placeholder="e.g., 140"
+            />
+            <InputField
+              label="Cervical Length (mm)"
+              value={form.cervicalLength}
+              icon={<FaRuler className="text-purple-400" />}
+              onChange={(e) => updateField("cervicalLength", e.target.value)}
+              placeholder="e.g., 35"
             />
           </div>
         </div>
@@ -345,18 +536,24 @@ function Symptoms() {
               </>
             )}
           </button>
-          
+
           <button
             onClick={() => {
               setForm({
                 age: "",
                 week: "",
                 weight: "",
+                prePregnancyWeight: "",
+                height: "",
+                babyCount: "1",
                 bpSystolic: "",
                 bpDiastolic: "",
                 heartRate: "",
                 sugar: "",
                 temperature: "",
+                babyWeight: "",
+                babyHeartRate: "",
+                cervicalLength: "",
                 symptoms: [],
               });
             }}

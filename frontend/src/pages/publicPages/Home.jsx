@@ -74,7 +74,7 @@ const Home = () => {
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
                     98%
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">AI Risk</div>
+                  <div className="text-sm text-gray-500 font-medium mt-1">safety</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
@@ -135,7 +135,7 @@ const Home = () => {
             />
             <Feature 
               icon={<FaChartLine className="text-2xl" />}
-              title="AI Predictions" 
+              title="ML Predictions" 
               description="Early risk detection using advanced machine learning"
             />
             <Feature 
