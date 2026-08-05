@@ -70,57 +70,85 @@ const Register = () => {
 
     if (error) setError("");
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (formData.password !== formData.confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+  setIsLoading(true);
+  setError("");
 
-    const isPasswordValid = Object.values(passwordErrors).every(Boolean);
-    if (!isPasswordValid) {
-      setError("Please meet all password requirements");
-      return;
-    }
+  try {
 
-    setIsLoading(true);
-    setError("");
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-
-    const existingUser = users.find(
-      (user) => user.email.toLowerCase() === formData.email.toLowerCase()
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/auth/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: "user",
+          countryCode: formData.countryCode,
+          phone: formData.phone,
+          selectedDoctor: formData.selectedDoctor
+        }),
+      }
     );
 
-    if (existingUser) {
-      setError("Email already registered");
-      setIsLoading(false);
-      return;
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+      throw new Error(
+        typeof data.detail === "string"
+          ? data.detail
+          : JSON.stringify(data.detail)
+      );
     }
 
-    const newUser = {
-      name: formData.name,
-      email: formData.email,
-      countryCode: formData.countryCode,
-      phone: formData.phone,
-      password: formData.password,
-      role: "user",
-      createdAt: new Date().toISOString(),
-    };
 
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
+    console.log("REGISTER RESPONSE:", data);
+
+
+    localStorage.setItem(
+      "access_token",
+      data.access_token
+    );
+
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(data.user)
+    );
+
 
     setSuccess(true);
-    setTimeout(() => {
-      navigate("/login");
-    }, 1000);
-  };
 
+
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1000);
+
+
+  } catch(error) {
+
+    console.error(error);
+    setError(error.message);
+
+  } finally {
+
+    setIsLoading(false);
+
+  }
+};
   return (
     <div
       className="relative h-screen overflow-hidden bg-cover bg-center flex items-center justify-center px-4 sm:px-6"

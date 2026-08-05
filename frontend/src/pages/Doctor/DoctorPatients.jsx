@@ -1,6 +1,8 @@
 // DoctorPatients.jsx
-import React, { useState, useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import {
   FaUsers,
   FaChartLine,
@@ -12,215 +14,134 @@ import {
   FaCog,
   FaSignOutAlt,
   FaSearch,
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaCalendarAlt,
-  FaClock,
-  FaCheckCircle,
-  FaTimesCircle,
   FaSpinner,
   FaExclamationTriangle,
-  FaHeart,
-  FaBaby,
-  FaWeight,
-  FaRuler,
-  FaSyringe,
+  FaCheckCircle,
   FaAmbulance,
+  FaEnvelope,
+  FaPhone,
+  FaHeartbeat,
+  FaBaby,
   FaNotesMedical,
+  FaTimes,
+  FaUser,
+  FaHeart,
 } from "react-icons/fa";
+
 import bg from "../../assets/images/bg.png";
 
 const DoctorPatients = () => {
   const navigate = useNavigate();
+
   const [doctor, setDoctor] = useState(null);
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
+
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
   const [activeTab, setActiveTab] = useState("patients");
 
+  // LOGIN CHECK
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
     if (!currentUser || currentUser.role !== "doctor") {
       navigate("/doctor-login");
       return;
     }
+
     setDoctor(currentUser);
     loadPatients();
   }, []);
 
+  // LOAD PATIENTS FROM PREDICTION FLOW
   const loadPatients = () => {
     setLoading(true);
-    
-    // Get all appointments
-    const allAppointments = JSON.parse(localStorage.getItem("appointments")) || [];
-    
-    // Get all users
-    const allUsers = JSON.parse(localStorage.getItem("users")) || [];
-    
-    // Get patient health updates
-    const healthUpdates = JSON.parse(localStorage.getItem("patientHealthUpdates")) || [];
-    
-    // Get patient risk assessments
-    const riskAssessments = JSON.parse(localStorage.getItem("patientRiskAssessments")) || [];
-    
-    // Filter appointments for this doctor
-    const doctorAppointments = allAppointments.filter(
-      app => app.doctorId === doctor?.id || app.doctorName === doctor?.name
-    );
-    
-    // Get unique patients from appointments
-    const patientMap = new Map();
-    
-    doctorAppointments.forEach(app => {
-      const patientId = app.patientId || app.patientEmail;
-      if (!patientMap.has(patientId)) {
-        // Find user data
-        const userData = allUsers.find(u => u.id === app.patientId || u.email === app.patientEmail);
-        
-        // Get health updates for this patient
-        const patientUpdates = healthUpdates.filter(
-          u => u.patientId === app.patientId || u.patientEmail === app.patientEmail
-        );
-        
-        // Get latest risk assessment
-        const latestRisk = riskAssessments
-          .filter(r => r.patientId === app.patientId || r.patientEmail === app.patientEmail)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-        
-        // Calculate patient stats
-        const patientAppointments = doctorAppointments.filter(
-          a => a.patientId === app.patientId || a.patientEmail === app.patientEmail
-        );
-        
-        const completedAppointments = patientAppointments.filter(
-          a => a.status?.toLowerCase() === "completed"
-        ).length;
-        
-        const pendingAppointments = patientAppointments.filter(
-          a => a.status?.toLowerCase() === "pending"
-        ).length;
-        
-        patientMap.set(patientId, {
-          id: app.patientId || patientId,
-          name: app.patientName || app.patient || userData?.name || "Unknown",
-          email: app.patientEmail || userData?.email || "",
-          phone: app.patientPhone || userData?.phone || "",
-          age: userData?.age || "N/A",
-          gender: userData?.gender || "N/A",
-          riskLevel: latestRisk?.riskLevel || "Low",
-          riskScore: latestRisk?.score || 0,
-          lastVisit: app.date || "N/A",
-          totalAppointments: patientAppointments.length,
-          completedAppointments,
-          pendingAppointments,
-          lastUpdate: app.updatedAt || app.createdAt || new Date().toISOString(),
-          healthUpdates: patientUpdates,
-          symptoms: latestRisk?.symptoms || [],
-          vitals: latestRisk?.vitals || null,
-        });
-      }
-    });
-    
-    const patientsList = Array.from(patientMap.values());
-    
-    // Sort by last visit (newest first)
-    patientsList.sort((a, b) => {
-      return new Date(b.lastVisit) - new Date(a.lastVisit);
-    });
-    
-    setPatients(patientsList);
-    setFilteredPatients(patientsList);
+
+    try {
+      const storedPatients = JSON.parse(localStorage.getItem("doctorPatientUpdates")) || [];
+
+      const formattedPatients = storedPatients.map((item, index) => ({
+        id: item.email || index,
+        name: item.patient || "Unknown Patient",
+        email: item.email || "N/A",
+        phone: item.phone || "N/A",
+        age: item.vitals?.age || "N/A",
+        gender: item.gender || "Not specified",
+        lastVisit: item.updatedAt || new Date().toISOString(),
+        pregnancyWeek: item.vitals?.pregnancy_week || "N/A",
+        riskLevel: item.risk || "Low",
+        riskScore: item.score || 0,
+        confidence: item.confidence || 0,
+        symptoms: item.symptoms || [],
+        riskFactors: item.riskFactors || [],
+        vitals: item.vitals || {},
+        updatedAt: item.updatedAt || new Date().toLocaleString(),
+        notes: "",
+      }));
+
+      setPatients(formattedPatients);
+      setFilteredPatients(formattedPatients);
+    } catch (error) {
+      console.log("Patient loading error:", error);
+      setPatients([]);
+      setFilteredPatients([]);
+    }
+
     setLoading(false);
   };
 
-  // Filter patients
+  // FILTER FUNCTION
   useEffect(() => {
-    let filtered = [...patients];
+    let data = [...patients];
 
-    if (searchTerm && searchTerm.trim() !== "") {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchLower) ||
-        p.email.toLowerCase().includes(searchLower) ||
-        p.phone.includes(searchTerm)
+    if (searchTerm.trim()) {
+      const value = searchTerm.toLowerCase();
+      data = data.filter(
+        (patient) =>
+          patient.name.toLowerCase().includes(value) ||
+          patient.email.toLowerCase().includes(value)
       );
     }
 
     if (riskFilter !== "all") {
-      filtered = filtered.filter(p => 
-        p.riskLevel?.toLowerCase() === riskFilter.toLowerCase()
+      data = data.filter(
+        (patient) => patient.riskLevel.toLowerCase() === riskFilter.toLowerCase()
       );
     }
 
-    setFilteredPatients(filtered);
+    setFilteredPatients(data);
   }, [searchTerm, riskFilter, patients]);
 
-  // Listen for real-time updates
+  // REAL TIME UPDATE LISTENER
   useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === "appointments" || e.key === "users" || 
-          e.key === "patientHealthUpdates" || e.key === "patientRiskAssessments" ||
-          e.key === "currentUser") {
-        loadPatients();
-      }
-    };
-
-    const handleDataUpdate = () => {
+    const updatePatients = () => {
       loadPatients();
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("dataUpdated", handleDataUpdate);
+    window.addEventListener("dataUpdated", updatePatients);
+    window.addEventListener("storage", updatePatients);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("dataUpdated", handleDataUpdate);
+      window.removeEventListener("dataUpdated", updatePatients);
+      window.removeEventListener("storage", updatePatients);
     };
-  }, [doctor]);
+  }, []);
 
-  const getRiskBadge = (risk) => {
-    const riskMap = {
-      high: "bg-red-100 text-red-700 border-red-200",
-      moderate: "bg-orange-100 text-orange-700 border-orange-200",
-      low: "bg-green-100 text-green-700 border-green-200",
-    };
-    return riskMap[risk?.toLowerCase()] || riskMap.low;
-  };
-
-  const getRiskIcon = (risk) => {
-    switch (risk?.toLowerCase()) {
-      case "high":
-        return <FaAmbulance className="text-red-500" />;
-      case "moderate":
-        return <FaExclamationTriangle className="text-orange-500" />;
-      default:
-        return <FaCheckCircle className="text-green-500" />;
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const options = { year: "numeric", month: "short", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    } catch {
-      return dateString;
-    }
-  };
-
-  const viewPatientDetails = (patient) => {
+  // HELPERS
+  const openPatient = (patient) => {
     setSelectedPatient(patient);
     setShowModal(true);
   };
 
   const closeModal = () => {
-    setShowModal(false);
     setSelectedPatient(null);
+    setShowModal(false);
   };
 
   const clearFilters = () => {
@@ -228,18 +149,44 @@ const DoctorPatients = () => {
     setRiskFilter("all");
   };
 
-  const isFilterActive = searchTerm || riskFilter !== "all";
+  const totalPatients = patients.length;
+  const highRisk = patients.filter((p) => p.riskLevel === "High").length;
+  const mediumRisk = patients.filter((p) => p.riskLevel === "Medium").length;
+  const lowRisk = patients.filter((p) => p.riskLevel === "Low").length;
 
-  // Stats
-  const total = patients.length;
-  const highRisk = patients.filter(p => p.riskLevel?.toLowerCase() === "high").length;
-  const moderateRisk = patients.filter(p => p.riskLevel?.toLowerCase() === "moderate").length;
-  const lowRisk = patients.filter(p => p.riskLevel?.toLowerCase() === "low").length;
+  // Helper function for risk badge styling
+  const getRiskBadge = (riskLevel) => {
+    switch (riskLevel?.toLowerCase()) {
+      case "high":
+        return "bg-red-100 text-red-600 border-red-200";
+      case "medium":
+        return "bg-orange-100 text-orange-600 border-orange-200";
+      case "low":
+        return "bg-green-100 text-green-600 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-600 border-gray-200";
+    }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-sky-50">
-        <FaSpinner className="text-4xl text-pink-500 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
+        <FaSpinner className="text-5xl text-pink-500 animate-spin" />
       </div>
     );
   }
@@ -249,273 +196,419 @@ const DoctorPatients = () => {
       className="relative h-screen overflow-hidden bg-cover bg-center flex"
       style={{ backgroundImage: `url(${bg})` }}
     >
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
-      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-pink-300 blur-[140px] opacity-20 animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
-      <div className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "1s" }}></div>
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm" />
 
       {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 flex-shrink-0 h-full flex flex-col">
-        <div className="p-5 border-b border-pink-100/50">
-          <Link to="/doctor-dashboard" className="block">
+      <div className="relative z-10 w-64 bg-white/85 backdrop-blur-xl border-r border-pink-100 h-full flex flex-col">
+        <div className="p-5 border-b border-pink-100">
+          <Link to="/doctor-dashboard">
             <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
             <p className="text-xs text-gray-500">Doctor Portal</p>
           </Link>
-          <div className="mt-4 flex items-center gap-3 p-3 bg-gradient-to-r from-pink-50 to-sky-50 rounded-2xl border border-pink-100/30">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-              {doctor?.name?.charAt(0).toUpperCase() || "D"}
+
+          <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-pink-50 to-sky-50 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold">
+              {doctor?.name?.charAt(0)?.toUpperCase() || "D"}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">{doctor?.name || "Doctor"}</p>
-              <p className="text-xs text-gray-500 truncate">{doctor?.specialization || "Gynecologist"}</p>
+            <div>
+              <p className="font-semibold text-sm">{doctor?.name || "Doctor"}</p>
+              <p className="text-xs text-gray-500">{doctor?.specialization || "Gynecologist"}</p>
             </div>
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Online</span>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <NavItem label="Dashboard" icon={<FaChartLine />} to="/doctor-dashboard" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-          <NavItem label="Patients" icon={<FaUsers />} to="/doctor-patients" active={activeTab === "patients"} onClick={() => setActiveTab("patients")} badge={highRisk} />
-          <NavItem label="Appointments" icon={<FaCalendarCheck />} to="/doctor-appointments" active={activeTab === "appointments"} onClick={() => setActiveTab("appointments")} />
-          <NavItem label="Reports" icon={<FaFileMedical />} to="/doctor-reports" active={activeTab === "reports"} onClick={() => setActiveTab("reports")} />
-          <NavItem label="Prescriptions" icon={<FaPrescription />} to="/doctor-prescriptions" active={activeTab === "prescriptions"} onClick={() => setActiveTab("prescriptions")} />
-          <NavItem label="Notifications" icon={<FaBell />} to="/doctor-notifications" active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
-          <NavItem label="Profile" icon={<FaUserMd />} to="/doctor-profile" active={activeTab === "profile"} onClick={() => setActiveTab("profile")} />
-          <NavItem label="Settings" icon={<FaCog />} to="/doctor-settings" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
+        <div className="flex-1 p-3 space-y-2">
+          <NavItem label="Dashboard" icon={<FaChartLine />} to="/doctor-dashboard" active={false} />
+          <NavItem
+            label="Patients"
+            icon={<FaUsers />}
+            to="/doctor-patients"
+            active={true}
+            badge={highRisk}
+          />
+          <NavItem label="Appointments" icon={<FaCalendarCheck />} to="/doctor-appointments" />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/doctor-reports" />
+          <NavItem label="Prescriptions" icon={<FaPrescription />} to="/doctor-prescriptions" />
+          <NavItem label="Notifications" icon={<FaBell />} to="/doctor-notifications" />
+          <NavItem label="Profile" icon={<FaUserMd />} to="/doctor-profile" />
+          <NavItem label="Settings" icon={<FaCog />} to="/doctor-settings" />
         </div>
 
-        <div className="p-3 border-t border-pink-100/50">
+        <div className="p-3 border-t border-pink-100">
           <button
             onClick={() => {
               localStorage.removeItem("currentUser");
               window.location.href = "/doctor-login";
             }}
-            className="w-full flex items-center justify-center gap-2 bg-pink-50 text-pink-600 px-4 py-2.5 rounded-xl hover:bg-pink-100 transition-all duration-300 text-sm font-semibold"
+            className="w-full flex items-center justify-center gap-2 bg-pink-50 text-pink-600 py-3 rounded-xl font-semibold"
           >
-            <FaSignOutAlt /> Logout
+            <FaSignOutAlt />
+            Logout
           </button>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
+      <div className="relative z-10 flex-1 overflow-y-auto p-6">
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
+            <h2 className="text-3xl font-bold text-gray-800 flex gap-2 items-center">
               <FaUsers className="text-pink-500" />
-              My Patients
+              Patients
             </h2>
-            <p className="text-sm text-gray-500 mt-1">View and manage all your patients</p>
+            <p className="text-sm text-gray-500">Patient monitoring and medical records</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={loadPatients} className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100 hover:bg-pink-50 transition-all text-sm font-medium text-gray-700 flex items-center gap-2">
-              <FaSpinner className={`${loading ? 'animate-spin' : ''}`} /> Refresh
-            </button>
-            <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100">
-              <span className="text-sm font-medium text-gray-700">{total} Patients</span>
-            </div>
-          </div>
+
+          <button
+            onClick={loadPatients}
+            className="bg-white px-4 py-2 rounded-xl shadow flex gap-2 items-center"
+          >
+            <FaSpinner />
+            Refresh
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatCard title="Total Patients" value={total} icon={<FaUsers />} color="pink" />
-          <StatCard title="High Risk" value={highRisk} icon={<FaAmbulance />} color="red" />
-          <StatCard title="Moderate Risk" value={moderateRisk} icon={<FaExclamationTriangle />} color="orange" />
-          <StatCard title="Low Risk" value={lowRisk} icon={<FaCheckCircle />} color="green" />
+        {/* STATS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <StatCard title="Total Patients" value={totalPatients} icon={<FaUsers />} />
+          <StatCard title="High Risk" value={highRisk} icon={<FaAmbulance />} />
+          <StatCard title="Need Attention" value={mediumRisk} icon={<FaExclamationTriangle />} />
+          <StatCard title="Stable" value={lowRisk} icon={<FaCheckCircle />} />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6 bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-white/50">
-          <div className="flex-1 min-w-[200px] relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        {/* FILTERS */}
+        <div className="bg-white/80 rounded-2xl p-4 shadow mb-6 flex gap-3 flex-wrap">
+          <div className="flex-1 relative">
+            <FaSearch className="absolute left-3 top-3 text-gray-400" />
             <input
-              type="text"
-              placeholder="Search by patient name, email or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-100 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+              placeholder="Search patient name or email"
+              className="w-full pl-10 py-2 rounded-xl border border-pink-100 outline-none focus:ring-2 focus:ring-pink-400"
             />
           </div>
+
           <select
             value={riskFilter}
             onChange={(e) => setRiskFilter(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-pink-100 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
+            className="px-4 rounded-xl border border-pink-100 outline-none focus:ring-2 focus:ring-pink-400"
           >
-            <option value="all">All Risk Levels</option>
-            <option value="high">High Risk</option>
-            <option value="moderate">Moderate Risk</option>
-            <option value="low">Low Risk</option>
+            <option value="all">All Risk</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
           </select>
-          {isFilterActive && (
-            <button onClick={clearFilters} className="px-4 py-2 rounded-xl bg-pink-100 text-pink-600 hover:bg-pink-200 transition-all flex items-center gap-2 text-sm font-medium">
-              Clear Filters
-            </button>
-          )}
+
+          <button onClick={clearFilters} className="px-4 rounded-xl bg-pink-100 text-pink-600">
+            Clear
+          </button>
         </div>
 
-        {/* Patients Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* PATIENT LIST */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredPatients.map((patient) => (
             <div
               key={patient.id}
-              className="bg-white/80 backdrop-blur-2xl rounded-2xl p-5 border border-pink-100/50 shadow-lg hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1"
-              onClick={() => viewPatientDetails(patient)}
+              className="bg-white/90 backdrop-blur-xl rounded-3xl border border-pink-100 shadow-lg hover:shadow-2xl transition-all duration-300 p-5"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
-                    {patient.name?.charAt(0) || "P"}
+              {/* Patient Header */}
+              <div className="flex justify-between items-start">
+                <div className="flex gap-3 items-center">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold">
+                    {patient.name?.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-800">{patient.name}</h4>
-                    <p className="text-xs text-gray-400">{patient.email}</p>
+                    <h3 className="font-bold text-gray-800">{patient.name}</h3>
+                    <p className="text-xs text-gray-500">{patient.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">Patient ID : {patient.id}</p>
                   </div>
                 </div>
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${getRiskBadge(patient.riskLevel)}`}>
-                  {getRiskIcon(patient.riskLevel)}
+
+                {/* Risk Badge */}
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    patient.riskLevel?.toLowerCase() === "high"
+                      ? "bg-red-100 text-red-600"
+                      : patient.riskLevel?.toLowerCase() === "medium"
+                      ? "bg-orange-100 text-orange-600"
+                      : "bg-green-100 text-green-600"
+                  }`}
+                >
                   {patient.riskLevel}
                 </span>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-400">Age</p>
-                  <p className="font-semibold text-gray-700">{patient.age}</p>
+              {/* Medical Summary */}
+              <div className="grid grid-cols-2 gap-3 mt-5">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Age</p>
+                  <p className="font-bold text-gray-700">{patient.age}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-400">Gender</p>
-                  <p className="font-semibold text-gray-700">{patient.gender}</p>
+
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Pregnancy Week</p>
+                  <p className="font-bold text-gray-700">{patient.pregnancyWeek}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-400">Total Appointments</p>
-                  <p className="font-semibold text-gray-700">{patient.totalAppointments}</p>
+
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Blood Pressure</p>
+                  <p className="font-bold text-gray-700">
+                    {patient.vitals?.systolic_bp || "-"} / {patient.vitals?.diastolic_bp || "-"}
+                  </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-gray-400">Last Visit</p>
-                  <p className="font-semibold text-gray-700">{formatDate(patient.lastVisit)}</p>
+
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs text-gray-400">Heart Rate</p>
+                  <p className="font-bold text-gray-700">{patient.vitals?.heart_rate || "-"} bpm</p>
                 </div>
               </div>
 
-              {patient.symptoms && patient.symptoms.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {patient.symptoms.slice(0, 3).map((symptom, idx) => (
-                    <span key={idx} className="text-xs px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full">
+              {/* AI RISK */}
+              <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-pink-50 to-sky-50">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">AI Risk Score</span>
+                  <span className="font-bold text-pink-600">{patient.riskScore}%</span>
+                </div>
+                <div className="h-2 bg-white rounded-full mt-2 overflow-hidden">
+                  <div
+                    className="h-full bg-pink-500 rounded-full"
+                    style={{ width: `${patient.riskScore}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Symptoms */}
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Recent Symptoms</p>
+                <div className="flex flex-wrap gap-2">
+                  {patient.symptoms?.slice(0, 3).map((symptom, index) => (
+                    <span
+                      key={index}
+                      className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs"
+                    >
                       {symptom}
                     </span>
                   ))}
-                  {patient.symptoms.length > 3 && (
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
-                      +{patient.symptoms.length - 3} more
+                  {patient.symptoms?.length > 3 && (
+                    <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs">
+                      +{patient.symptoms.length - 3}
                     </span>
                   )}
                 </div>
-              )}
+              </div>
+
+              {/* BUTTON */}
+              <button
+                onClick={() => openPatient(patient)}
+                className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 text-white font-semibold hover:scale-[1.02] transition"
+              >
+                <FaNotesMedical className="inline mr-2" />
+                View Medical Record
+              </button>
             </div>
           ))}
-
-          {filteredPatients.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-gray-400">
-              <FaUsers className="text-4xl mx-auto mb-2 opacity-50" />
-              <p className="font-medium">No patients found</p>
-              <p className="text-xs mt-1">
-                {isFilterActive ? "Try adjusting your filters" : "Patients will appear here once they book appointments"}
-              </p>
-            </div>
-          )}
         </div>
+
+        {/* EMPTY STATE */}
+        {filteredPatients.length === 0 && (
+          <div className="bg-white/80 rounded-3xl p-10 text-center shadow">
+            <FaUsers className="text-5xl mx-auto text-gray-300 mb-3" />
+            <h3 className="font-bold text-gray-600">No Patients Found</h3>
+            <p className="text-sm text-gray-400 mt-2">
+              Patients will appear after prediction data is shared
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Patient Details Modal */}
+      {/* MEDICAL RECORD MODAL */}
       {showModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-5">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-6">
+            {/* HEADER */}
             <div className="flex justify-between items-start mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <FaUser className="text-pink-500" />
-                Patient Details
-              </h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors text-2xl">
-                <FaTimesCircle />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <FaNotesMedical className="text-pink-500" />
+                  Patient Medical Record
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">Complete pregnancy health summary</p>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-red-500 text-xl"
+              >
+                <FaTimes />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-purple-400 flex items-center justify-center text-white font-bold text-2xl">
-                  {selectedPatient.name?.charAt(0) || "P"}
+            {/* PATIENT PROFILE */}
+            <div className="bg-gradient-to-r from-pink-50 to-sky-50 rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                {selectedPatient.name?.charAt(0)}
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">{selectedPatient.name}</h3>
+                <div className="text-sm text-gray-600 space-y-1 mt-1">
+                  <p>
+                    <FaEnvelope className="inline mr-2" />
+                    {selectedPatient.email}
+                  </p>
+                  <p>
+                    <FaPhone className="inline mr-2" />
+                    {selectedPatient.phone}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI PREDICTION SUMMARY */}
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-red-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500">Risk Level</p>
+                <p className="font-bold text-lg text-red-600">{selectedPatient.riskLevel}</p>
+              </div>
+              <div className="bg-pink-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500">AI Risk Score</p>
+                <p className="font-bold text-lg text-pink-600">{selectedPatient.riskScore}%</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500">Confidence</p>
+                <p className="font-bold text-lg text-green-600">{selectedPatient.confidence}%</p>
+              </div>
+            </div>
+
+            {/* PREGNANCY DETAILS */}
+            <div className="mt-6">
+              <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <FaBaby className="text-pink-500" />
+                Pregnancy Details
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ["Age", selectedPatient.vitals?.age],
+                  ["Pregnancy Week", selectedPatient.vitals?.pregnancy_week],
+                  ["Baby Count", selectedPatient.vitals?.baby_count],
+                  ["Baby Weight", selectedPatient.vitals?.baby_weight],
+                ].map((item, index) => (
+                  <div key={index} className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400">{item[0]}</p>
+                    <p className="font-bold text-gray-700">{item[1] || "N/A"}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* VITALS */}
+            <div className="mt-6">
+              <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <FaHeartbeat className="text-red-500" />
+                Vitals Monitoring
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ["Blood Pressure", `${selectedPatient.vitals?.systolic_bp || "-"} / ${selectedPatient.vitals?.diastolic_bp || "-"}`],
+                  ["Heart Rate", `${selectedPatient.vitals?.heart_rate || "-"} bpm`],
+                  ["BMI", selectedPatient.vitals?.bmi],
+                  ["Temperature", selectedPatient.vitals?.body_temp],
+                ].map((item, index) => (
+                  <div key={index} className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400">{item[0]}</p>
+                    <p className="font-bold">{item[1] || "N/A"}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SYMPTOMS SECTION */}
+            <div className="mt-6">
+              <h3 className="font-bold text-gray-800 mb-3">Reported Symptoms</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedPatient.symptoms && selectedPatient.symptoms.length > 0 ? (
+                  selectedPatient.symptoms.map((symptom, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-2 rounded-full bg-pink-100 text-pink-700 text-sm"
+                    >
+                      {symptom}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm">No symptoms recorded</p>
+                )}
+              </div>
+            </div>
+
+            {/* RISK FACTORS */}
+            <div className="mt-6">
+              <h3 className="font-bold text-gray-800 mb-3">AI Risk Factors</h3>
+              {selectedPatient.riskFactors && selectedPatient.riskFactors.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedPatient.riskFactors.map((factor, index) => (
+                    <div
+                      key={index}
+                      className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-sm text-orange-700 flex gap-2 items-center"
+                    >
+                      <FaExclamationTriangle />
+                      {factor}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-green-50 rounded-xl p-3 text-green-700 text-sm">
+                  <FaCheckCircle className="inline mr-2" />
+                  No major risk factors detected
+                </div>
+              )}
+            </div>
+
+            {/* HEALTH SUMMARY */}
+            <div className="mt-6 bg-gradient-to-r from-pink-50 to-sky-50 rounded-2xl p-5">
+              <h3 className="font-bold text-gray-800 mb-3">Health Summary</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Latest Prediction</p>
+                  <p className="font-bold">{selectedPatient.riskLevel} Risk</p>
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-800">{selectedPatient.name}</h4>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <FaEnvelope /> {selectedPatient.email}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <FaPhone /> {selectedPatient.phone || "N/A"}
-                  </div>
+                  <p className="text-gray-500">Last Updated</p>
+                  <p className="font-bold">{selectedPatient.updatedAt}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Pregnancy Status</p>
+                  <p className="font-bold text-green-600">Monitoring Required</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Doctor Review</p>
+                  <p className="font-bold">Pending</p>
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Age</p>
-                  <p className="font-semibold">{selectedPatient.age}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Gender</p>
-                  <p className="font-semibold">{selectedPatient.gender}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Risk Level</p>
-                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${getRiskBadge(selectedPatient.riskLevel)}`}>
-                    {getRiskIcon(selectedPatient.riskLevel)}
-                    {selectedPatient.riskLevel}
-                  </span>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-400">Risk Score</p>
-                  <p className="font-semibold">{selectedPatient.riskScore}%</p>
-                </div>
-              </div>
+            {/* DOCTOR NOTES */}
+            <div className="mt-6">
+              <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <FaNotesMedical className="text-pink-500" />
+                Doctor Notes
+              </h3>
+              <textarea
+                placeholder="Add medical notes for this patient..."
+                className="w-full h-28 rounded-xl border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-pink-400"
+              ></textarea>
+            </div>
 
-              {selectedPatient.vitals && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Vitals</p>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <p className="text-xs text-gray-400">BP</p>
-                      <p className="font-semibold">{selectedPatient.vitals.bpSystolic}/{selectedPatient.vitals.bpDiastolic}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Heart Rate</p>
-                      <p className="font-semibold">{selectedPatient.vitals.heartRate} bpm</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400">Weight</p>
-                      <p className="font-semibold">{selectedPatient.vitals.weight} kg</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedPatient.symptoms && selectedPatient.symptoms.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Symptoms</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPatient.symptoms.map((symptom, idx) => (
-                      <span key={idx} className="text-xs px-3 py-1 bg-pink-100 text-pink-700 rounded-full">
-                        {symptom}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
-                <button onClick={closeModal} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl hover:bg-gray-300 transition-colors">
-                  Close
-                </button>
-              </div>
+            {/* MODAL ACTIONS */}
+            <div className="mt-6 flex gap-3 border-t pt-4">
+              <button
+                onClick={closeModal}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
+              >
+                Close
+              </button>
+              <button className="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 text-white font-semibold">
+                Save Notes
+              </button>
             </div>
           </div>
         </div>
@@ -524,48 +617,54 @@ const DoctorPatients = () => {
   );
 };
 
+// Information Box
+const InfoBox = ({ title, value }) => (
+  <div className="bg-white rounded-xl p-3 shadow-sm">
+    <p className="text-xs text-gray-400">{title}</p>
+    <p className="font-semibold text-gray-700 mt-1">{value}</p>
+  </div>
+);
+
+// Vital Card
+const VitalCard = ({ label, value }) => (
+  <div className="bg-gray-50 rounded-xl p-4">
+    <p className="text-xs text-gray-400">{label}</p>
+    <p className="font-bold text-gray-800 mt-2">{value}</p>
+  </div>
+);
+
+// Sidebar Item
 const NavItem = ({ label, icon, to, active, onClick, badge }) => (
   <Link
     to={to}
     onClick={onClick}
-    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 text-sm ${
-      active ? "bg-gradient-to-r from-pink-500 to-sky-400 text-white shadow-lg" : "text-gray-600 hover:bg-pink-50 hover:text-pink-500"
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${
+      active
+        ? "bg-gradient-to-r from-pink-500 to-sky-400 text-white shadow-lg"
+        : "text-gray-600 hover:bg-pink-50 hover:text-pink-500"
     }`}
   >
     <span className="text-lg">{icon}</span>
-    <span className="font-medium flex-1">{label}</span>
+    <span className="flex-1 font-medium">{label}</span>
     {badge > 0 && (
-      <span className={`text-xs px-2 py-0.5 rounded-full ${active ? "bg-white/30 text-white" : "bg-red-500 text-white"}`}>
+      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
         {badge}
       </span>
     )}
   </Link>
 );
 
-const StatCard = ({ title, value, icon, color }) => {
-  const colorClasses = {
-    pink: "bg-pink-100 text-pink-600",
-    purple: "bg-purple-100 text-purple-600",
-    yellow: "bg-yellow-100 text-yellow-600",
-    green: "bg-green-100 text-green-600",
-    blue: "bg-blue-100 text-blue-600",
-    red: "bg-red-100 text-red-600",
-    orange: "bg-orange-100 text-orange-600",
-  };
-
-  return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-3 border border-pink-100/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <div className="flex items-center gap-2">
-        <div className={`${colorClasses[color]} p-2 rounded-full text-xs`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-lg font-bold text-gray-800">{value}</p>
-          <p className="text-[10px] text-gray-500">{title}</p>
-        </div>
+// Stats Card
+const StatCard = ({ title, value, icon, color }) => (
+  <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-4 shadow-lg border border-pink-100">
+    <div className="flex items-center gap-3">
+      <div className="p-3 rounded-full bg-pink-100 text-pink-600">{icon}</div>
+      <div>
+        <p className="text-xl font-bold text-gray-800">{value}</p>
+        <p className="text-xs text-gray-500">{title}</p>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default DoctorPatients;

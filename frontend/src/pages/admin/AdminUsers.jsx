@@ -22,14 +22,77 @@ const AdminUsers = () => {
     loadUsers();
   }, []);
 
-  const loadUsers = () => {
-    setLoading(true);
-    const allUsers = JSON.parse(localStorage.getItem("users")) || [];
-    setUsers(allUsers);
-    setFilteredUsers(allUsers);
-    setLoading(false);
-  };
+ const loadUsers = async () => {
 
+  try {
+
+    setLoading(true);
+
+
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token");
+
+
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/admin/users",
+      {
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        }
+      }
+    );
+
+
+
+    const data =
+      await response.json();
+
+
+
+    console.log(
+      "ADMIN USERS RESPONSE:",
+      data
+    );
+
+
+
+    const usersData =
+      Array.isArray(data)
+      ?
+      data
+      :
+      data.users ||
+      data.data ||
+      [];
+
+
+
+    setUsers(usersData);
+
+    setFilteredUsers(usersData);
+
+
+  }
+
+  catch(error){
+
+    console.log(
+      "Users loading error:",
+      error
+    );
+
+  }
+
+  finally{
+
+    setLoading(false);
+
+  }
+
+};
   useEffect(() => {
     let filtered = [...users];
     if (searchTerm) {
@@ -106,7 +169,10 @@ const AdminUsers = () => {
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-pink-50 hover:bg-pink-50/30 transition-colors">
+                    <tr
+                      key={user.id || user._id || user.email}
+                      className="border-b border-pink-50 hover:bg-pink-50/30 transition-colors"
+                    >
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm">

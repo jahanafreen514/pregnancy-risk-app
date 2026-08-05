@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { saveToken } from "../../services/authService";
 import {
   FaHeartbeat,
   FaEnvelope,
@@ -62,39 +63,72 @@ const Login = () => {
     if (error) setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const isPasswordValid = Object.values(passwordErrors).every(Boolean);
-    if (formData.password && !isPasswordValid) {
-      setError("Please meet all password requirements");
-      return;
-    }
+  setIsLoading(true);
+  setError("");
 
-    setIsLoading(true);
-    setError("");
+  try {
+    // OAuth2PasswordRequestForm expects form-urlencoded
+    const body = new URLSearchParams();
+    body.append("username", formData.email);
+    body.append("password", formData.password);
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-
-    const user = users.find(
-      (u) =>
-        u.email.toLowerCase() === formData.email.toLowerCase() &&
-        u.password === formData.password
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body,
+      }
     );
 
-    if (user) {
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      setSuccess(true);
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 600);
-    } else {
-      setError("Invalid email or password");
-      setIsLoading(false);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        typeof data.detail === "string"
+          ? data.detail
+          : "Login failed"
+      );
     }
-  };
+
+    // Save JWT
+    localStorage.setItem("token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    saveToken(
+  data.access_token,
+  data.refresh_token
+);
+
+    // Save logged in user
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(data.user)
+    );
+
+    setSuccess(true);
+
+    setTimeout(() => {
+      if (data.user.role === "doctor") {
+        navigate("/doctor-dashboard");
+      } else if (data.user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    }, 700);
+
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Login failed");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div

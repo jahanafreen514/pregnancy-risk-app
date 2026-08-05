@@ -1,31 +1,26 @@
-// const API_URL = "http://127.0.0.1:8000/api";
+import axios from "axios";
 
-export const registerUser = async (userData) => {
-  const response = await fetch(
-    `${API_URL}/auth/register`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
+const api = axios.create({
+  baseURL: "http://127.0.0.1:8000/api"
+});
+
+
+api.interceptors.request.use(
+  (config) => {
+
+    const token = localStorage.getItem("token");
+
+    if(token){
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
-  );
 
-  return response.json();
-};
+    return config;
+  },
+  (error)=>{
+    return Promise.reject(error);
+  }
+);
 
-export const loginUser = async (credentials) => {
-  const response = await fetch(
-    `${API_URL}/auth/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-    }
-  );
 
-  return response.json();
-};
+export default api;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { saveToken } from "../../services/authService";
 import {
   FaHeartbeat,
   FaEnvelope,
@@ -42,44 +43,58 @@ const DoctorLogin = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+  e.preventDefault();
+  setIsLoading(true);
+  setError("");
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Get doctors from localStorage
-    const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
-    
-    // Get users with role doctor
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const doctorUsers = users.filter(u => u.role === "doctor");
-    
-    // Combine both lists
-    const allDoctors = [...doctors, ...doctorUsers];
-
-    // Find doctor by email and password
-    const doctor = allDoctors.find(
-      (d) =>
-        d.email.toLowerCase() === formData.email.toLowerCase() &&
-        d.password === formData.password
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          username: formData.email,
+          password: formData.password,
+        }),
+      }
     );
 
-    if (doctor) {
-      // Store doctor as current user with role
-      localStorage.setItem("currentUser", JSON.stringify({
-        ...doctor,
-        role: "doctor"
-      }));
-      setSuccess(true);
-      setTimeout(() => {
-        navigate("/doctor-dashboard");
-      }, 800);
-    } else {
-      setError("Invalid doctor credentials. Please try again.");
-      setIsLoading(false);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Invalid credentials");
     }
-  };
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify({
+        ...data.user,
+        role: "doctor",
+        token: data.access_token,
+      })
+    );
+    localStorage.setItem("token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    saveToken(
+  data.access_token,
+  data.refresh_token
+);
+
+    setSuccess(true);
+
+    setTimeout(() => {
+      navigate("/doctor-dashboard");
+    }, 800);
+
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div
@@ -104,7 +119,7 @@ const DoctorLogin = () => {
         <div className="grid lg:grid-cols-2 gap-8 items-stretch min-h-[80vh]">
           {/* LEFT PANEL */}
           <div className="hidden lg:flex flex-col justify-between space-y-4 h-full">
-            <div className="flex items-center gap-4 flex-shrink-0">
+            <div className="flex items-center gap-4 flexa-shrink-0">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center shadow-xl">
                 <FaHeartbeat className="text-white text-3xl animate-pulse" />
               </div>

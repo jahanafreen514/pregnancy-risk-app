@@ -30,98 +30,17 @@ import {
   FaCheck,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
-
-// Doctor data
-const Doctors = [
-  {
-    id: 1,
-    name: "Dr. Sneha",
-    specialty: "Senior Consultant Obstetrician",
-    experience: "12 Years Exp",
-    hospitalName: "Apollo Cradle & Children's Hospital",
-    location: "Hyderabad Clinical Hub",
-    availability: "Mon - Fri (09:00 - 13:00)",
-    status: "Available",
-    statusBg: "bg-green-50 border-green-200 text-green-700",
-    badgeBg: "bg-pink-100 text-pink-500",
-    rating: 4.9,
-    reviews: 156,
-    phone: "+91 98765 43210",
-    email: "dr.sneha@glowcare.com",
-  },
-  {
-    id: 2,
-    name: "Dr. Priya",
-    specialty: "Maternal-Fetal Ultrasound Specialist",
-    experience: "10 Years Exp",
-    hospitalName: "Rainbow Children's Hospital",
-    location: "Vijayawada Center",
-    availability: "Mon - Sat (11:00 - 16:00)",
-    status: "Busy",
-    statusBg: "bg-amber-50 border-amber-200 text-amber-700",
-    badgeBg: "bg-sky-100 text-sky-500",
-    rating: 4.8,
-    reviews: 132,
-    phone: "+91 87654 32109",
-    email: "dr.priya@glowcare.com",
-  },
-  {
-    id: 3,
-    name: "Dr. Lakshmi",
-    specialty: "Fetal Medicine & Neonatal Care",
-    experience: "15 Years Exp",
-    hospitalName: "Ankura Hospital for Women & Children",
-    location: "Warangal Care Center",
-    availability: "Tue - Sun (08:00 - 12:00)",
-    status: "Available",
-    statusBg: "bg-green-50 border-green-200 text-green-700",
-    badgeBg: "bg-pink-100 text-pink-500",
-    rating: 4.9,
-    reviews: 189,
-    phone: "+91 76543 21098",
-    email: "dr.lakshmi@glowcare.com",
-  },
-  {
-    id: 4,
-    name: "Dr. Anjali",
-    specialty: "Reproductive Endocrinologist",
-    experience: "9 Years Exp",
-    hospitalName: "Fernandez Hospital",
-    location: "Guntur Care Unit",
-    availability: "Mon - Thu (14:00 - 18:00)",
-    status: "Available",
-    statusBg: "bg-green-50 border-green-200 text-green-700",
-    badgeBg: "bg-sky-100 text-sky-500",
-    rating: 4.7,
-    reviews: 98,
-    phone: "+91 65432 10987",
-    email: "dr.anjali@glowcare.com",
-  },
-  {
-    id: 5,
-    name: "Dr. Meenakshi",
-    specialty: "High-Risk Gestational Consultant",
-    experience: "18 Years Exp",
-    hospitalName: "Cloudnine Hospital",
-    location: "Vizag Medical Hub",
-    availability: "Wed - Sat (10:00 - 15:00)",
-    status: "On Break",
-    statusBg: "bg-gray-50 border-gray-200 text-gray-600",
-    badgeBg: "bg-pink-100 text-pink-500",
-    rating: 4.9,
-    reviews: 210,
-    phone: "+91 54321 09876",
-    email: "dr.meenakshi@glowcare.com",
-  },
-];
+const API_URL = "http://127.0.0.1:8000/api";
 
 function Appointments() {
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState([]);
   const [doctorRequests, setDoctorRequests] = useState([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  
+
   // Booking form state
   const [bookingForm, setBookingForm] = useState({
     doctorName: "",
@@ -134,22 +53,66 @@ function Appointments() {
     notes: "",
   });
 
-  // Load user and requests
+  // Load user + verified doctors + requests
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    if (currentUser) {
+    const currentUser = JSON.parse(
+      localStorage.getItem("currentUser")
+    );
+
+    if(currentUser){
       setUser(currentUser);
     }
-    
-    // Load doctor requests from localStorage
-    const savedRequests = JSON.parse(localStorage.getItem("doctorAppointmentRequests")) || [];
+
+    const savedRequests = JSON.parse(
+      localStorage.getItem("doctorAppointmentRequests")
+    ) || [];
+
     setDoctorRequests(savedRequests);
-    setLoading(false);
+
+    fetchVerifiedDoctors();
   }, []);
 
-  // Save requests to localStorage whenever they change
+  // Fetch only admin approved doctors
+  const fetchVerifiedDoctors = async() => {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/doctors/verified"
+      );
+
+      const data = await response.json();
+
+      const formattedDoctors = data.map((doctor) => ({
+        id: doctor.id,
+        user_id: doctor.user_id || doctor.id,
+        name: doctor.name,
+        specialty: doctor.specialization || "Maternal Health Specialist",
+        experience: "Verified Doctor",
+        hospitalName: doctor.hospital || "GlowCare Hospital",
+        location: "GlowCare Partner Hospital",
+        availability: "Available",
+        status: "Available",
+        statusBg: "bg-green-50 border-green-200 text-green-700",
+        badgeBg: "bg-pink-100 text-pink-500",
+        rating: 5,
+        reviews: 0,
+        phone: doctor.phone || "",
+        email: doctor.email
+      }));
+
+      setDoctors(formattedDoctors);
+    } catch(error) {
+      console.log("Verified doctor fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save requests whenever changed
   useEffect(() => {
-    localStorage.setItem("doctorAppointmentRequests", JSON.stringify(doctorRequests));
+    localStorage.setItem(
+      "doctorAppointmentRequests",
+      JSON.stringify(doctorRequests)
+    );
   }, [doctorRequests]);
 
   // Open booking form
@@ -174,55 +137,97 @@ function Appointments() {
     setSelectedDoctor(null);
   };
 
-  // Submit booking request
-  const submitBookingRequest = (e) => {
-    e.preventDefault();
-    
-    if (!bookingForm.date || !bookingForm.time) {
-      alert("Please select date and time");
-      return;
+  // Submit booking request to API
+  const submitBookingRequest = async (e) => {
+  e.preventDefault();
+
+  if (!bookingForm.date || !bookingForm.time) {
+    alert("Please select date and time");
+    return;
+  }
+
+  // Access token is stored separately
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    alert("Your login session was not found. Please login again.");
+    window.location.href = "/login";
+    return;
+  }
+
+  if (!selectedDoctor?.id) {
+    alert("Doctor information is missing.");
+    return;
+  }
+
+  try {
+    const scheduledDate = new Date(
+      `${bookingForm.date}T${bookingForm.time}`
+    );
+
+    const response = await fetch(
+      `${API_URL}/appointments`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+
+        body: JSON.stringify({
+          // Use doctor ID from verified doctors API
+          doctor_id:
+            selectedDoctor.user_id ||
+            selectedDoctor.id,
+
+          scheduled_for:
+            scheduledDate.toISOString(),
+
+          reason:
+            bookingForm.notes || null,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Appointment API error:",
+        data
+      );
+
+      throw new Error(
+        data.detail ||
+        "Appointment booking failed"
+      );
     }
 
-    const newRequest = {
-      id: Date.now(),
-      doctorName: bookingForm.doctorName,
-      doctorEmail: bookingForm.doctorEmail,
-      patientName: bookingForm.patientName,
-      patientEmail: bookingForm.patientEmail,
-      date: bookingForm.date,
-      time: bookingForm.time,
-      type: bookingForm.type,
-      notes: bookingForm.notes,
-      status: "pending", // pending, approved, rejected, completed
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    console.log(
+      "Appointment created:",
+      data
+    );
 
-    // Add to doctor requests
-    setDoctorRequests([...doctorRequests, newRequest]);
-    
-    // Also store for doctor-side retrieval
-    const allRequests = JSON.parse(localStorage.getItem("doctorAppointmentRequests")) || [];
-    allRequests.push(newRequest);
-    localStorage.setItem("doctorAppointmentRequests", JSON.stringify(allRequests));
+    alert(
+      "Appointment request sent successfully"
+    );
 
-    // Send notification to doctor (stored for doctor dashboard)
-    const doctorNotifications = JSON.parse(localStorage.getItem("doctorNotifications")) || [];
-    doctorNotifications.push({
-      id: Date.now(),
-      type: "appointment_request",
-      doctorName: bookingForm.doctorName,
-      patientName: bookingForm.patientName,
-      message: `${bookingForm.patientName} has requested an appointment on ${bookingForm.date} at ${bookingForm.time}`,
-      requestId: newRequest.id,
-      read: false,
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem("doctorNotifications", JSON.stringify(doctorNotifications));
-
-    alert("Appointment request sent to doctor! Waiting for confirmation.");
     closeBookingForm();
-  };
+
+  } catch (error) {
+
+    console.error(
+      "Appointment error:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Unable to book appointment"
+    );
+  }
+};
 
   // Update appointment status (for doctor - this would be called from doctor dashboard)
   const updateAppointmentStatus = (requestId, newStatus) => {
@@ -377,61 +382,100 @@ function Appointments() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <StatCard title="Available Doctors" value={Doctors.filter(d => d.status === "Available").length} icon={<FaUserMd />} color="green" />
-          <StatCard title="My Appointments" value={userAppointments.length} icon={<FaCalendarCheck />} color="pink" />
-          <StatCard title="Pending" value={userAppointments.filter(a => a.status === "pending").length} icon={<FaClock />} color="yellow" />
-          <StatCard title="Approved" value={userAppointments.filter(a => a.status === "approved").length} icon={<FaCheckCircle />} color="sky" />
+          <StatCard
+            title="Verified Doctors"
+            value={doctors.length}
+            icon={<FaUserMd />}
+            color="green"
+          />
+          <StatCard
+            title="My Appointments"
+            value={userAppointments.length}
+            icon={<FaCalendarCheck />}
+            color="pink"
+          />
+          <StatCard
+            title="Pending"
+            value={userAppointments.filter((a) => a.status === "pending").length}
+            icon={<FaClock />}
+            color="yellow"
+          />
+          <StatCard
+            title="Approved"
+            value={userAppointments.filter((a) => a.status === "approved").length}
+            icon={<FaCheckCircle />}
+            color="sky"
+          />
         </div>
 
         {/* My Appointments Section */}
         {userAppointments.length > 0 && (
           <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-xl border border-white/70 p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FaCalendarCheck className="text-pink-500" />
+              <FaCalendarCheck className="text-pink-500"/>
               My Appointments
             </h3>
+
             <div className="space-y-3">
               {userAppointments.map((appt) => (
-                <div key={appt.id} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-pink-100/50 hover:shadow-md transition-all">
+                <div
+                  key={appt.id}
+                  className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-pink-100/50 hover:shadow-md transition-all"
+                >
                   <div className="flex flex-wrap justify-between items-start gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <h4 className="font-semibold text-gray-800">{appt.doctorName}</h4>
-                        <span className={`text-xs px-2 py-1 rounded-full border ${getStatusBadge(appt.status)}`}>
-                          {getStatusIcon(appt.status)} {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                        <h4 className="font-semibold text-gray-800">
+                          {appt.doctorName}
+                        </h4>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full border ${getStatusBadge(appt.status)}`}
+                        >
+                          {getStatusIcon(appt.status)}
+                          {appt.status}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-4 mt-1 text-sm text-gray-500">
+
+                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
-                          <FaCalendarAlt className="text-pink-400" /> {appt.date}
+                          <FaCalendarAlt className="text-pink-400"/>
+                          {appt.date}
                         </span>
                         <span className="flex items-center gap-1">
-                          <FaClock className="text-pink-400" /> {appt.time}
+                          <FaClock className="text-pink-400"/>
+                          {appt.time}
                         </span>
                         <span className="flex items-center gap-1">
-                          {appt.type === "online" ? <FaVideo className="text-sky-400" /> : <FaHospital className="text-purple-400" />}
+                          {appt.type === "online"
+                            ? <FaVideo className="text-sky-400"/>
+                            : <FaHospital className="text-purple-400"/>
+                          }
                           {appt.type === "online" ? "Online" : "In-Person"}
                         </span>
                       </div>
+
                       {appt.notes && (
-                        <p className="text-xs text-gray-400 mt-1">📝 {appt.notes}</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          📝 {appt.notes}
+                        </p>
                       )}
                     </div>
+
                     {appt.status === "pending" && (
                       <button
                         onClick={() => cancelAppointment(appt.id)}
                         className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                       >
-                        <FaTrash /> Cancel
+                        <FaTrash/>
+                        Cancel
                       </button>
                     )}
+
                     {appt.status === "approved" && (
-                      <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                        <FaCheck className="text-green-500" /> Confirmed
+                      <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                        <FaCheck/>
+                        Confirmed
                       </span>
-                    )}
-                    {appt.status === "rejected" && (
-                      <span className="text-sm text-red-600 font-medium">❌ Rejected</span>
                     )}
                   </div>
                 </div>
@@ -443,24 +487,35 @@ function Appointments() {
         {/* Doctors List */}
         <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-xl border border-white/70 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-800">Available Doctors</h3>
+            <h3 className="text-xl font-bold text-gray-800">
+              Available Verified Doctors
+            </h3>
             <span className="text-sm text-gray-500 bg-pink-50 px-3 py-1 rounded-full">
-              {Doctors.filter(d => d.status === "Available").length} available now
+              {doctors.length} available
             </span>
           </div>
 
-          <div className="space-y-4">
-            {Doctors.map((doc) => (
-              <DoctorCard
-                key={doc.id}
-                doctor={doc}
-                onBook={() => openBookingForm(doc)}
-                userEmail={user?.email}
-              />
-            ))}
-          </div>
+          {doctors.length === 0 ? (
+            <div className="text-center py-10">
+              <FaUserMd className="mx-auto text-4xl text-gray-300"/>
+              <p className="text-gray-500 mt-3">
+                No verified doctors available
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {doctors.map((doc) => (
+                <DoctorCard
+                  key={doc.id}
+                  doctor={doc}
+                  onBook={() => openBookingForm(doc)}
+                  userEmail={user?.email}
+                />
+              ))}
+            </div>
+          )}
         </div>
-
+         
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-400 border-t border-pink-100/50 pt-6">
           <p>© 2026 GlowCare — Safe Pregnancy, Smart Monitoring 🤰</p>
@@ -623,77 +678,89 @@ const StatCard = ({ title, value, icon, color }) => {
 
 const DoctorCard = ({ doctor, onBook, userEmail }) => {
   const hasPendingRequest = () => {
-    const requests = JSON.parse(localStorage.getItem("doctorAppointmentRequests")) || [];
-    return requests.some(r => 
-      r.doctorName === doctor.name && 
-      r.patientEmail === userEmail && 
-      r.status === "pending"
+    const requests = JSON.parse(
+      localStorage.getItem("doctorAppointmentRequests")
+    ) || [];
+
+    return requests.some(
+      (req) =>
+        req.doctorName === doctor.name &&
+        req.patientEmail === userEmail &&
+        req.status === "pending"
     );
   };
 
   return (
     <div className="group bg-white/60 backdrop-blur-md border border-gray-100/70 rounded-2xl p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
       <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-5">
-        
-        <div className="flex items-start gap-4 flex-1 min-w-0">
-          <div className={`${doctor.badgeBg} w-14 h-14 rounded-2xl flex items-center justify-center text-xl shrink-0 hidden sm:flex group-hover:rotate-12 group-hover:scale-110 transition-all duration-500`}>
-            <FaUserMd />
+        {/* Doctor Details */}
+        <div className="flex items-start gap-4 flex-1">
+          <div
+            className={`${doctor.badgeBg} w-14 h-14 rounded-2xl flex items-center justify-center text-xl shrink-0 group-hover:rotate-12 group-hover:scale-110 transition-all duration-500`}
+          >
+            <FaUserMd/>
           </div>
 
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex flex-row items-center gap-3 flex-wrap">
-              <h4 className="text-xl font-bold text-gray-800 truncate">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h4 className="text-xl font-bold text-gray-800">
                 {doctor.name}
               </h4>
-              <span className={`text-xs font-bold px-2.5 py-0.5 border rounded-full shadow-sm ${doctor.statusBg}`}>
+              <span
+                className={`text-xs font-bold px-3 py-1 rounded-full border ${doctor.statusBg}`}
+              >
                 {doctor.status}
-              </span>
-              <span className="text-xs text-yellow-500 flex items-center gap-1">
-                <FaStar className="text-yellow-400 fill-yellow-400" /> {doctor.rating} ({doctor.reviews})
               </span>
             </div>
 
-            <p className="text-sm md:text-base font-semibold text-pink-500">
+            <p className="text-sm md:text-base font-semibold text-pink-500 mt-1">
               {doctor.specialty}
             </p>
 
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-5 gap-y-2 text-xs md:text-sm text-gray-500 pt-1">
-              <div className="flex flex-row items-center gap-1.5">
-                <FaCheckCircle className="text-sky-400 shrink-0" />
+            <div className="flex flex-col gap-2 mt-3 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <FaHospital className="text-pink-400"/>
+                <span>{doctor.hospitalName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FaCheckCircle className="text-sky-400"/>
                 <span>{doctor.experience}</span>
               </div>
-              <div className="flex flex-row items-center gap-1.5">
-                <FaHospital className="text-pink-400 shrink-0" />
-                <span className="font-medium text-gray-700 truncate">{doctor.hospitalName}</span>
+              <div className="flex items-center gap-2">
+                <FaMapMarkerAlt className="text-sky-400"/>
+                <span>{doctor.location}</span>
               </div>
-              <div className="flex flex-row items-center gap-1.5">
-                <FaMapMarkerAlt className="text-sky-400 shrink-0" />
-                <span className="truncate text-gray-500">{doctor.location}</span>
-              </div>
-              <div className="flex flex-row items-center gap-1.5">
-                <FaClock className="text-pink-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <FaClock className="text-pink-400"/>
                 <span>{doctor.availability}</span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-1 mt-3 text-yellow-500 text-sm">
+              <FaStar/>
+              {doctor.rating}
+              <span className="text-gray-400">
+                ({doctor.reviews} reviews)
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto shrink-0 border-t xl:border-t-0 pt-4 xl:pt-0 border-gray-100">
-          <button 
-            onClick={() => onBook()}
-            disabled={hasPendingRequest() || doctor.status !== "Available"}
-            className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 w-full sm:w-auto whitespace-nowrap shadow-sm active:scale-95 ${
-              hasPendingRequest() || doctor.status !== "Available"
+        {/* Booking Button */}
+        <div className="w-full xl:w-auto">
+          <button
+            onClick={onBook}
+            disabled={hasPendingRequest()}
+            className={`w-full xl:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
+              hasPendingRequest()
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-pink-500 to-sky-400 text-white hover:from-pink-600 hover:to-sky-500 shadow-md shadow-pink-100"
+                : "bg-gradient-to-r from-pink-500 to-sky-400 text-white hover:shadow-lg hover:scale-105"
             }`}
           >
-            <FaCalendarCheck className="text-xs" />
-            {hasPendingRequest() ? "Request Pending" : 
-             doctor.status !== "Available" ? "Not Available" : "Book Appointment"}
+            <FaCalendarCheck/>
+            {hasPendingRequest() ? "Request Pending" : "Book Appointment"}
           </button>
         </div>
-
       </div>
     </div>
   );
