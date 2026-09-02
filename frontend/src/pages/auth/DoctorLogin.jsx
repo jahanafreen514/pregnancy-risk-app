@@ -19,6 +19,7 @@ import {
   FaChartLine,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
 const DoctorLogin = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const DoctorLogin = () => {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/api/auth/login",
+      apiUrl("/auth/doctor-login"),
       {
         method: "POST",
         headers: {

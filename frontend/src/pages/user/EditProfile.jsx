@@ -24,6 +24,7 @@ import {
   FaEdit,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const EditProfile = () => {
     email: "",
     phone: "",
     bloodGroup: "",
-    dueDate: "",
+    lmpDate: "",
     address: "",
     weight: "",
     height: "",
@@ -44,15 +45,14 @@ const EditProfile = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    // Load user data from localStorage
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     if (currentUser) {
       setFormData({
         name: currentUser.name || "",
         email: currentUser.email || "",
         phone: currentUser.phone || "",
-        bloodGroup: currentUser.bloodGroup || "O+",
-        dueDate: currentUser.dueDate || "",
+        bloodGroup: currentUser.blood_group || currentUser.bloodGroup || "",
+        lmpDate: currentUser.lmp_date || "",
         address: currentUser.address || "",
         weight: currentUser.weight || "",
         height: currentUser.height || "",
@@ -61,15 +61,20 @@ const EditProfile = () => {
         name: currentUser.name || "",
         email: currentUser.email || "",
         phone: currentUser.phone || "",
-        bloodGroup: currentUser.bloodGroup || "O+",
-        dueDate: currentUser.dueDate || "",
+        bloodGroup: currentUser.blood_group || currentUser.bloodGroup || "",
+        lmpDate: currentUser.lmp_date || "",
         address: currentUser.address || "",
         weight: currentUser.weight || "",
         height: currentUser.height || "",
       });
     } else {
       navigate("/login");
+      return;
     }
+    fetch(apiUrl("/users/me"), { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } })
+      .then(response => response.ok ? response.json() : null)
+        .then(user => user && setFormData(current => ({ ...current, name: user.name || "", email: user.email || "", phone: user.phone || "", address: user.address || "", bloodGroup: user.blood_group || "", lmpDate: user.lmp_date || "" })))
+      .catch(() => {});
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -113,14 +118,23 @@ const EditProfile = () => {
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const response = await fetch(apiUrl("/users/me"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      body: JSON.stringify({ name: formData.name, phone: formData.phone, address: formData.address || null, bloodGroup: formData.bloodGroup || null, lmpDate: formData.lmpDate || null }),
+    });
+    if (!response.ok) {
+      setIsLoading(false);
+      setErrors({ submit: "Could not save your profile. Please try again." });
+      return;
+    }
+    const saved = await response.json();
 
     // Update user in localStorage
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     const updatedUser = {
       ...currentUser,
-      ...formData,
+      ...formData, ...saved,
     };
     localStorage.setItem("currentUser", JSON.stringify(updatedUser));
 
@@ -149,6 +163,18 @@ const EditProfile = () => {
     } else {
       navigate("/profile");
     }
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setErrors(current => ({ ...current, address: "Location is not supported by this browser. Please enter your address." }));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setFormData(current => ({ ...current, address: `Current location: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}` })),
+      () => setErrors(current => ({ ...current, address: "Location permission was not granted. Please enter your address." })),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const getInitials = () => {
@@ -325,12 +351,12 @@ const EditProfile = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         <FaBaby className="inline mr-2 text-pink-400" />
-                        Expected Due Date
+                        Last menstrual period (LMP)
                       </label>
                       <input
                         type="date"
-                        name="dueDate"
-                        value={formData.dueDate}
+                        name="lmpDate"
+                        value={formData.lmpDate}
                         onChange={handleChange}
                         className="w-full rounded-xl border border-pink-100 bg-white/90 px-4 py-3 outline-none transition-all duration-300 focus:border-sky-300 focus:ring-2 focus:ring-sky-100 hover:shadow-md"
                       />
@@ -355,10 +381,10 @@ const EditProfile = () => {
 
                   {/* Address */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <div className="mb-1.5 flex items-center justify-between gap-3"><label className="block text-sm font-medium text-gray-700">
                       <FaMapMarkerAlt className="inline mr-2 text-pink-400" />
                       Address
-                    </label>
+                    </label><button type="button" onClick={useCurrentLocation} className="text-xs font-semibold text-sky-600 hover:text-pink-600">Use current location</button></div>
                     <textarea
                       name="address"
                       value={formData.address}
@@ -367,6 +393,7 @@ const EditProfile = () => {
                       rows="3"
                       className="w-full rounded-xl border border-pink-100 bg-white/90 px-4 py-3 outline-none transition-all duration-300 focus:border-sky-300 focus:ring-2 focus:ring-sky-100 hover:shadow-md resize-none"
                     />
+                    {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
                   </div>
 
                   {/* Buttons */}
@@ -398,6 +425,7 @@ const EditProfile = () => {
                       Cancel
                     </button>
                   </div>
+                  {errors.submit && <p className="text-center text-sm text-red-600">{errors.submit}</p>}
 
                   {/* Info Text */}
                   <p className="text-xs text-gray-400 text-center mt-4">

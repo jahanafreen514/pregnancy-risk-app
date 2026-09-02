@@ -43,15 +43,9 @@ export const refreshAccessToken = async () => {
   }
   try {
 
-    const response = await axios.post(
-      `${API}/refresh`,
-      null,
-      {
-        params: {
-          refresh_token: refreshToken
-        }
-      }
-    );
+    const response = await axios.post(`${API}/refresh`, {
+      refresh_token: refreshToken,
+    });
 
 
     const newToken =

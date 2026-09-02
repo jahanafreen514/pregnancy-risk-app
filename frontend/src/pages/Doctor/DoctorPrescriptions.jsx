@@ -39,6 +39,7 @@ import bg from "../../assets/images/bg.png";
 
 const EMPTY_FORM = {
 
+  patientId:"",
   patientName:"",
   patientEmail:"",
   medicine:"",
@@ -148,11 +149,7 @@ const getAuthToken = () => {
   );
 
 
-  return (
-    user.token ||
-    user.access_token ||
-    ""
-  );
+  return localStorage.getItem("token") || localStorage.getItem("access_token") || user.token || user.access_token || "";
 
 };
 
@@ -378,8 +375,8 @@ if (!token) {
   useEffect(() => {
 
 
-    const patient =
-      location.state?.patient;
+    const storedPatient = JSON.parse(localStorage.getItem("selectedPrescriptionPatient") || localStorage.getItem("selectedPatient") || "null");
+    const patient = location.state?.patient || storedPatient;
 
 
 
@@ -394,6 +391,8 @@ if (!token) {
     setFormData({
 
       ...EMPTY_FORM,
+
+      patientId: patient.id || patient._id || patient.patient_id || patient.patientId || "",
 
 
       patientName:
@@ -421,6 +420,9 @@ if (!token) {
     setShowForm(
       true
     );
+
+    localStorage.removeItem("selectedPrescriptionPatient");
+    localStorage.removeItem("selectedPatient");
 
 
 
@@ -509,7 +511,7 @@ const handleSavePrescription = async(e)=>{
       patient_id:
         editingPrescription?.patientId ||
         formData.patientId ||
-        "manual-patient",
+        null,
 
 
       patient_name:
@@ -581,8 +583,7 @@ const handleSavePrescription = async(e)=>{
               "application/json",
 
 
-            Authorization:
-              `Bearer ${user.token}`
+            Authorization: `Bearer ${getAuthToken()}`
 
           },
 
@@ -745,8 +746,7 @@ method:"DELETE",
 
 headers:{
 
-Authorization:
-`Bearer ${user.token}`
+Authorization: `Bearer ${getAuthToken()}`
 
 }
 
@@ -777,7 +777,7 @@ prescriptions.filter(item => {
     searchTerm.toLowerCase();
 
 
-  return (
+  return (statusFilter === "all" || item.status === statusFilter) && (
     item.patientName
       ?.toLowerCase()
       .includes(search)
@@ -797,7 +797,7 @@ filteredPrescriptions.length;
 
 
 const activePrescriptions =
-filteredPrescriptions.length;
+filteredPrescriptions.filter(x=>x.status==="active").length;
 
 
 
@@ -1229,7 +1229,7 @@ x=>x.status==="completed"
 
 
                           {
-                            item.patient_name
+                            item.patientName
                             ?.charAt(0)
                             ?.toUpperCase()
                             ||
@@ -1247,7 +1247,7 @@ x=>x.status==="completed"
                           <p className="font-semibold">
 
                             {
-                              item.patient_name
+                              item.patientName
                             }
 
                           </p>
@@ -1256,7 +1256,7 @@ x=>x.status==="completed"
                           <p className="text-xs text-gray-500">
 
                             {
-                              item.patient_email
+                              item.patientEmail
                             }
 
                           </p>
@@ -1345,7 +1345,7 @@ x=>x.status==="completed"
 
                       {
                         formatDate(
-                          item.created_at
+                          item.createdAt
                         )
                       }
 

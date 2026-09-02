@@ -66,8 +66,43 @@ const DoctorDashboard = () => {
       return;
     }
     setDoctor(currentUser);
-    loadData();
+    loadLiveData();
   }, []);
+
+  const loadLiveData = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [appointmentsResponse, notificationsResponse, reportsResponse] = await Promise.all([
+        fetch("http://127.0.0.1:8000/api/appointments/doctor", { headers }),
+        fetch("http://127.0.0.1:8000/api/notifications", { headers }),
+        fetch("http://127.0.0.1:8000/api/reports", { headers }),
+      ]);
+      const rawAppointments = appointmentsResponse.ok ? await appointmentsResponse.json() : [];
+      const rawNotifications = notificationsResponse.ok ? await notificationsResponse.json() : [];
+      const rawReports = reportsResponse.ok ? await reportsResponse.json() : [];
+      const liveAppointments = rawAppointments.map(item => {
+        const scheduled = new Date(item.scheduled_for);
+        return { ...item, patientName: item.patient_name || "Patient", patientEmail: item.patient_email || "", date: scheduled.toLocaleDateString(), time: scheduled.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), type: item.appointment_type, notes: item.reason };
+      });
+      const liveNotifications = rawNotifications.map(item => ({ ...item, read: item.is_read, createdAt: new Date(item.created_at).toLocaleString() }));
+      const liveReports = rawReports.map(item => ({ ...item, patient: item.patient_name || "Patient", risk: item.title?.match(/(High|Moderate|Low)/i)?.[0] || "Not assessed", score: item.risk_score || 0, symptoms: item.symptoms || [], updatedAt: item.created_at ? new Date(item.created_at).toLocaleDateString() : "Today" }));
+      setAppointments(liveAppointments);
+      setNotifications(liveNotifications);
+      setPatientUpdates(liveReports);
+      setStats({
+        totalPatients: new Set(liveAppointments.map(item => item.patient_id)).size,
+        totalAppointments: liveAppointments.length,
+        pendingAppointments: liveAppointments.filter(item => item.status === "pending").length,
+        approvedAppointments: liveAppointments.filter(item => item.status === "accepted").length,
+        completedAppointments: liveAppointments.filter(item => item.status === "completed").length,
+        cancelledAppointments: liveAppointments.filter(item => ["cancelled", "rejected"].includes(item.status)).length,
+        highRiskPatients: liveReports.filter(item => item.title?.includes("High")).length,
+      });
+    } catch (error) { console.error("Doctor dashboard API loading error", error); }
+    finally { setLoading(false); }
+  };
 
   const loadData = () => {
     // Try multiple possible keys for appointments
@@ -154,7 +189,10 @@ const DoctorDashboard = () => {
     setLoading(false);
   };
 
-  const updateAppointmentStatus = (appointmentId, newStatus) => {
+  const updateAppointmentStatus = async (appointmentId, newStatus) => {
+    const status = newStatus === "approved" ? "accepted" : newStatus;
+    const response = await fetch(`http://127.0.0.1:8000/api/appointments/${appointmentId}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` }, body: JSON.stringify({ status }) });
+    if (response.ok) { await loadLiveData(); return; }
     // Try to find appointments in any of the possible keys
     let allAppointments = [];
     let storageKey = 'appointments';
@@ -204,21 +242,23 @@ const DoctorDashboard = () => {
       localStorage.setItem("doctorNotifications", JSON.stringify(notifs));
     }
     
-    loadData();
+    loadLiveData();
     window.dispatchEvent(new Event("appointmentUpdated"));
   };
 
-  const markNotificationRead = (id) => {
+  const markNotificationRead = async (id) => {
+    await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     const notifs = JSON.parse(localStorage.getItem("doctorNotifications")) || [];
     const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
     localStorage.setItem("doctorNotifications", JSON.stringify(updated));
-    loadData();
+    loadLiveData();
   };
 
   const getStatusBadge = (status) => {
     const statusMap = {
       pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
       approved: "bg-green-100 text-green-700 border-green-200",
+      accepted: "bg-green-100 text-green-700 border-green-200",
       rejected: "bg-red-100 text-red-700 border-red-200",
       completed: "bg-blue-100 text-blue-700 border-blue-200",
       cancelled: "bg-gray-100 text-gray-700 border-gray-200",
@@ -821,7 +861,7 @@ const DoctorAppointments = ({ doctor, appointments, updateAppointmentStatus, get
                         <button onClick={() => updateAppointmentStatus(app.id, "rejected")} className="text-red-600 hover:text-red-800 text-xs font-medium">❌ Decline</button>
                       </div>
                     )}
-                    {app.status?.toLowerCase() === "approved" && (
+                    {["approved", "accepted"].includes(app.status?.toLowerCase()) && (
                       <button onClick={() => updateAppointmentStatus(app.id, "completed")} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Mark Complete</button>
                     )}
                     {app.status?.toLowerCase() === "completed" && <span className="text-green-600 text-xs">✅ Done</span>}

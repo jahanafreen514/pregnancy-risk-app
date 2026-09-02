@@ -25,6 +25,7 @@ import {
 
 import bg from "../../assets/images/bg.png";
 import CountryCodeSelector from "../../components/CountryCodeSelector";
+import { apiUrl } from "../../config/runtime";
 
 const DoctorRegister = () => {
   const navigate = useNavigate();
@@ -35,6 +36,14 @@ const DoctorRegister = () => {
     countryCode: "+91",
     phone: "",
     hospital: "",
+    address: "",
+    area: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+    latitude: "",
+    longitude: "",
     specialization: "",
     licenseNumber: "",
     experience: "",
@@ -95,6 +104,21 @@ const DoctorRegister = () => {
     }
   };
 
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Location is not supported by this browser. Please enter the address manually.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setFormData((current) => ({ ...current, latitude: String(coords.latitude), longitude: String(coords.longitude) }));
+        setError("");
+      },
+      () => setError("Location permission was not granted. You can still enter the hospital address manually."),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
   const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -123,7 +147,7 @@ const DoctorRegister = () => {
     // ==========================
 
     const registerResponse = await fetch(
-      "http://127.0.0.1:8000/api/auth/register",
+      apiUrl("/auth/register"),
       {
         method: "POST",
 
@@ -182,7 +206,7 @@ const DoctorRegister = () => {
 
     const profileResponse = await fetch(
 
-    "http://127.0.0.1:8000/api/doctors/me/profile",
+    apiUrl("/doctors/me/profile"),
 
       {
 
@@ -209,7 +233,15 @@ const DoctorRegister = () => {
 
 
           hospital:
-          formData.hospital
+          formData.hospital,
+          address: formData.address,
+          area: formData.area,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          country: formData.country,
+          latitude: formData.latitude ? Number(formData.latitude) : null,
+          longitude: formData.longitude ? Number(formData.longitude) : null
 
         })
 
@@ -253,7 +285,7 @@ const DoctorRegister = () => {
 
     const uploadResponse = await fetch(
 
-      "http://127.0.0.1:8000/api/doctors/me/verification",
+      apiUrl("/doctors/me/verification"),
 
       {
 
@@ -535,6 +567,22 @@ const DoctorRegister = () => {
                           ))}
                         </select>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div><p className="text-sm font-semibold text-gray-700">Hospital location</p><p className="text-xs text-gray-500">Enter the address manually, or save only coordinates with your permission.</p></div>
+                      <button type="button" onClick={useCurrentLocation} className="rounded-lg bg-gradient-to-r from-pink-500 to-sky-400 px-3 py-2 text-xs font-semibold text-white">Use Current Location</button>
+                    </div>
+                    <input name="address" value={formData.address} onChange={handleChange} placeholder="Building / street address" required className="mb-3 w-full rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                      <input name="area" value={formData.area} onChange={handleChange} placeholder="Area / locality" className="rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                      <input name="city" value={formData.city} onChange={handleChange} placeholder="City" required className="rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                      <input name="state" value={formData.state} onChange={handleChange} placeholder="State" required className="rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                      <input name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Pincode" required className="rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                      <input name="country" value={formData.country} onChange={handleChange} placeholder="Country" required className="rounded-xl border border-pink-100 bg-white px-3 py-2.5 text-sm outline-none focus:ring-4 focus:ring-sky-100" />
+                      <p className="self-center text-xs text-sky-700">{formData.latitude ? `GPS saved: ${Number(formData.latitude).toFixed(5)}, ${Number(formData.longitude).toFixed(5)}` : "GPS is optional"}</p>
                     </div>
                   </div>
 

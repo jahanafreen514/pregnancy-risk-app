@@ -1,0 +1,40 @@
+{
+  "algorithm": "XGBoostClassifier",
+  "dataset": "pregnancy_data_enhanced.csv",
+  "feature_count": 24,
+  "feature_order": [
+    "Age",
+    "Systolic BP",
+    "Diastolic",
+    "BS",
+    "Body Temp",
+    "BMI",
+    "Heart Rate",
+    "Previous Complications",
+    "Preexisting Diabetes",
+    "Gestational Diabetes",
+    "Mental Health",
+    "Pregnancy Week",
+    "Baby Count",
+    "Baby Weight",
+    "Baby Heart Rate",
+    "Cervical Length",
+    "Headache",
+    "Nausea",
+    "Vomiting",
+    "Swelling",
+    "Blurred Vision",
+    "Bleeding",
+    "Abdominal Pain",
+    "Reduced Baby Movement"
+  ],
+  "test_size": 0.2,
+  "random_state": 42,
+  "held_out_accuracy": 0.998179,
+  "classes": [
+    "High",
+    "Low",
+    "Medium"
+  ],
+  "note": "Dataset-split accuracy only; not clinical validation accuracy."
+}

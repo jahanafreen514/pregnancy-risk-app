@@ -9,6 +9,7 @@ import {
   FaLightbulb,
   FaChartLine,
   FaBell,
+  FaShieldAlt,
   FaCalendarAlt,
   FaUser,
   FaHeart,
@@ -25,8 +26,10 @@ import {
   FaThermometerHalf,
   FaRuler,
   FaWeightHanging,
+  FaCog,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
 const Suggestions = () => {
   const [user, setUser] = useState(null);
@@ -451,6 +454,27 @@ const Suggestions = () => {
     loadUserData();
   }, []);
 
+  // The latest saved assessment is authoritative. Local storage remains only as
+  // an offline fallback for an interrupted connection.
+  useEffect(() => {
+    const refreshFromOverview = async () => {
+      try {
+        const response = await fetch(apiUrl("/users/me/overview"), { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } });
+        if (!response.ok) return;
+        const overview = await response.json();
+        const latest = overview.latest || {};
+        const timing = overview.pregnancy_timing || {};
+        const apiRisk = { risk: latest.risk_level || "Not assessed", score: latest.risk_score || 0, symptoms: latest.symptoms || [], riskFactors: [], vitals: { heartRate: latest.heart_rate || 0, bpSystolic: latest.bp_systolic, bpDiastolic: latest.bp_diastolic, temperature: latest.temperature, sugar: latest.sugar, week: timing.pregnancy_week || latest.pregnancy_week || 0 } };
+        const medications = Array.from({ length: overview.prescriptions?.total || 0 }, () => ({}));
+        const appointments = overview.appointments || [];
+        setUser(current => ({ ...(current || {}), ...overview.user }));
+        setHealthData(current => ({ ...current, heartRate: apiRisk.vitals.heartRate, bloodPressure: apiRisk.vitals.bpSystolic && apiRisk.vitals.bpDiastolic ? `${apiRisk.vitals.bpSystolic}/${apiRisk.vitals.bpDiastolic}` : "Not recorded", trimester: timing.trimester ? `${timing.trimester}${timing.trimester === 1 ? "st" : timing.trimester === 2 ? "nd" : "rd"}` : "Not recorded", risk: apiRisk.risk, symptoms: apiRisk.symptoms, medications, appointments, temperature: apiRisk.vitals.temperature || 0, sugar: apiRisk.vitals.sugar || 0, week: apiRisk.vitals.week || 0, riskScore: apiRisk.score }));
+        generateSuggestions(apiRisk, Number(localStorage.getItem("waterIntake")) || 0, medications, apiRisk.vitals.heartRate || 0, appointments, apiRisk.vitals);
+      } catch { /* retain offline fallback */ }
+    };
+    refreshFromOverview();
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-sky-50">
@@ -508,23 +532,26 @@ const Suggestions = () => {
         style={{ animationDelay: "1s" }}
       ></div>
 
-      {/* SIDEBAR */}
-      <div className="fixed left-0 top-0 z-40 w-64 h-screen bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex flex-col shadow-xl">
+      <div className="fixed left-0 top-0 z-40 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 h-screen flex flex-col">
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
-        <div className="mt-8 space-y-2 flex-1">
-          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" />
+        <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"  />
           <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
-          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" active />
+          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" active/>
           <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
           <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
           <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
           <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
 
         <div className="pt-4 border-t border-pink-100/50">
@@ -539,6 +566,7 @@ const Suggestions = () => {
           </button>
         </div>
       </div>
+
 
       {/* MAIN CONTENT */}
       <div className="relative z-10 ml-64 flex-1 px-6 py-6">

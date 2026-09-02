@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
@@ -22,8 +22,16 @@ import {
   FaShieldVirus,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
 const About = () => {
+  const [systemInfo, setSystemInfo] = useState(null);
+  useEffect(() => {
+    fetch(apiUrl("/contact/about"))
+      .then((response) => response.ok ? response.json() : null)
+      .then(setSystemInfo)
+      .catch(() => setSystemInfo(null));
+  }, []);
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-cover bg-center"
@@ -81,6 +89,11 @@ const About = () => {
               for expectant mothers. Our mission is to reduce maternal mortality rates 
               and ensure safe pregnancies through intelligent technology.
             </p>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-2xl rounded-3xl p-6 border border-white/70 shadow-xl">
+            <h2 className="text-xl font-bold text-gray-800">Live system information</h2>
+            {systemInfo ? <div className="mt-3 text-sm text-gray-600 space-y-1"><p>Risk levels: {systemInfo.risk_classes?.join(", ")}</p><p>Model: {systemInfo.model_algorithm} · {systemInfo.feature_count} health inputs</p><p className="text-xs text-gray-400">{systemInfo.disclaimer}</p></div> : <p className="mt-3 text-sm text-gray-400">System information is temporarily unavailable.</p>}
           </div>
 
           {/* Problem Section */}

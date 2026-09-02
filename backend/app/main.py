@@ -1,23 +1,28 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.config.settings import get_settings
 from app.config.db import init_db
+from app.services.reminder_service import reminder_loop
 
 from app.routes import (
     admin_routes,
-    admin_doctor_routes,
     alert_routes,
     appointment_routes,
+    call_routes,
     auth_routes,
     doctor_routes,
     prediction_routes,
     report_routes,
     user_routes,
-    prescription_routes
+    prescription_routes,
+    notification_routes,
+    reminder_routes,
+    feedback_routes,
+    contact_routes,
 )
 
 
@@ -37,8 +42,11 @@ async def lifespan(app: FastAPI):
 
     # Initialize MongoDB + Beanie models
     await init_db()
-
-    yield
+    reminder_task = asyncio.create_task(reminder_loop())
+    try:
+        yield
+    finally:
+        reminder_task.cancel()
 
 
 # ==========================================
@@ -53,17 +61,6 @@ app = FastAPI(
         "monitoring and risk prediction."
     ),
     lifespan=lifespan,
-)
-
-
-# ==========================================
-# STATIC FILES
-# ==========================================
-
-app.mount(
-    "/uploads",
-    StaticFiles(directory="uploads"),
-    name="uploads",
 )
 
 
@@ -90,12 +87,17 @@ for router in (
     user_routes.router,
     doctor_routes.router,
     admin_routes.router,
-    admin_doctor_routes.router,
     prediction_routes.router,
     report_routes.router,
     alert_routes.router,
     appointment_routes.router,
-    prescription_routes.router,):
+    call_routes.router,
+    prescription_routes.router,
+    notification_routes.router,
+    reminder_routes.router,
+    feedback_routes.router,
+    contact_routes.router,
+):
     app.include_router(
         router,
         prefix="/api",

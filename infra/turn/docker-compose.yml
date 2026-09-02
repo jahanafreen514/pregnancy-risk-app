@@ -1,0 +1,20 @@
+services:
+  coturn:
+    # Pin a released image instead of tracking latest in production.
+    image: coturn/coturn:4.15.0
+    restart: unless-stopped
+    command:
+      - -n
+      - --log-file=stdout
+      - --realm=${TURN_REALM}
+      - --lt-cred-mech
+      - --user=${TURN_USERNAME}:${TURN_CREDENTIAL}
+      - --fingerprint
+      - --no-multicast-peers
+      - --min-port=49160
+      - --max-port=49200
+      - --external-ip=${TURN_EXTERNAL_IP}
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "49160-49200:49160-49200/udp"

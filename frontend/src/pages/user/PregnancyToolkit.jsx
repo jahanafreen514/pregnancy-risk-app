@@ -43,6 +43,7 @@ import {
   FaStop,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import UserSidebar from "../../components/UserSidebar";
 
 const PregnancyToolkit = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -168,6 +169,20 @@ const PregnancyToolkit = () => {
     }
     
     return Math.min(100, Math.max(0, Math.round(baseScore)));
+  };
+
+  const refreshPregnancyTiming = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/users/me/overview", { headers: { Authorization: `Bearer ${token}` } });
+      const overview = response.ok ? await response.json() : null;
+      const week = overview?.pregnancy_timing?.pregnancy_week;
+      if (week) {
+        setCurrentWeek(week);
+        localStorage.setItem("pregnancyWeek", String(week));
+      }
+    } catch (error) { console.error("Unable to refresh pregnancy timing", error); }
   };
 
   // ===== GET RISK COLOR =====
@@ -677,14 +692,16 @@ const PregnancyToolkit = () => {
   // ===== LOAD DATA ON MOUNT & AUTO-REFRESH =====
   useEffect(() => {
     loadAllData();
+    refreshPregnancyTiming();
     
-    const interval = setInterval(loadAllData, 3000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => { loadAllData(); refreshPregnancyTiming(); }, 60000);
+    window.addEventListener("pregnancyTimingUpdated", refreshPregnancyTiming);
+    return () => { clearInterval(interval); window.removeEventListener("pregnancyTimingUpdated", refreshPregnancyTiming); };
   }, []);
 
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen bg-cover bg-center flex"
       style={{
         backgroundImage: `url(${bg})`,
       }}
@@ -707,23 +724,27 @@ const PregnancyToolkit = () => {
       <video ref={videoRef} className="hidden" playsInline />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
+      <UserSidebar />
+      <div className="hidden">
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"/>
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"  />
           <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" active />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
           <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
           <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
           <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
           <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
 
         <div className="pt-4 border-t border-pink-100/50">
@@ -740,7 +761,7 @@ const PregnancyToolkit = () => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8">
         {/* Top Bar */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div className="relative">
@@ -749,13 +770,13 @@ const PregnancyToolkit = () => {
               Pregnancy Toolkit
               <button
                 onClick={() => setShowWeekSelector(!showWeekSelector)}
-                className="text-sm font-normal text-gray-500 bg-pink-50 px-3 py-1 rounded-full hover:bg-pink-100 transition-all duration-300 flex items-center gap-1"
+                className="text-sm font-normal text-gray-500 bg-pink-50 px-3 py-1 rounded-full flex items-center gap-1 pointer-events-none"
               >
                 Week {currentWeek} {trimester.emoji}
                 <span className="text-xs">▼</span>
               </button>
             </h2>
-            {showWeekSelector && (
+            {false && showWeekSelector && (
               <div className="absolute mt-2 bg-white rounded-2xl shadow-2xl p-4 border border-pink-100 w-80 z-50">
                 <div className="grid grid-cols-4 gap-2">
                   {Array.from({ length: 20 }, (_, i) => i + 20).map((week) => (
@@ -819,9 +840,7 @@ const PregnancyToolkit = () => {
           <TabButton label="Contractions" icon={<FaStopwatch />} active={activeTab === "contractions"} onClick={() => setActiveTab("contractions")} />
           <TabButton label="Heart Rate" icon={<FaHeartbeat />} active={activeTab === "heartrate"} onClick={() => setActiveTab("heartrate")} />
           <TabButton label="Water" icon={<FaTint />} active={activeTab === "water"} onClick={() => setActiveTab("water")} />
-          <TabButton label="Medicines" icon={<FaPills />} active={activeTab === "medicines"} onClick={() => setActiveTab("medicines")} />
           <TabButton label="Reminders" icon={<FaBell />} active={activeTab === "reminders"} onClick={() => setActiveTab("reminders")} />
-          <TabButton label="Checklist" icon={<FaClipboardList />} active={activeTab === "checklist"} onClick={() => setActiveTab("checklist")} />
         </div>
 
         {/* Tab Content */}
@@ -894,10 +913,6 @@ const PregnancyToolkit = () => {
                 <button onClick={() => setActiveTab("water")} className="bg-white/80 backdrop-blur-2xl p-4 rounded-2xl shadow-md border border-white/70 hover:shadow-xl transition-all hover:-translate-y-1 text-center">
                   <FaTint className="text-2xl text-sky-500 mx-auto mb-2" />
                   <p className="text-sm font-medium text-gray-700">Water</p>
-                </button>
-                <button onClick={() => setActiveTab("medicines")} className="bg-white/80 backdrop-blur-2xl p-4 rounded-2xl shadow-md border border-white/70 hover:shadow-xl transition-all hover:-translate-y-1 text-center">
-                  <FaPills className="text-2xl text-purple-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Medicines</p>
                 </button>
               </div>
             </>

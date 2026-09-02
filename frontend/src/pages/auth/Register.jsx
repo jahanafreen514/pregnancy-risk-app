@@ -118,10 +118,9 @@ const handleSubmit = async (e) => {
     console.log("REGISTER RESPONSE:", data);
 
 
-    localStorage.setItem(
-      "access_token",
-      data.access_token
-    );
+    // Keep token keys consistent with the authenticated API interceptor.
+    localStorage.setItem("token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
 
 
     localStorage.setItem(
@@ -134,7 +133,7 @@ const handleSubmit = async (e) => {
 
 
     setTimeout(() => {
-      navigate("/dashboard");
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     }, 1000);
 
 

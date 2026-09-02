@@ -7,6 +7,7 @@ import {
   FaArrowLeft,
   FaChartLine,
   FaRobot,
+  FaShieldAlt,
   FaUserInjured,
   FaNotesMedical,
   FaCheckCircle,
@@ -22,6 +23,7 @@ import {
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
+import UserSidebar from "../../components/UserSidebar";
 
 
 function Prediction() {
@@ -29,11 +31,11 @@ function Prediction() {
 
   const [riskData, setRiskData] = useState({
 
-    risk: "Low",
+    risk: "Not assessed",
 
-    score: 15,
+    score: null,
 
-    confidence: 95,
+    confidence: null,
 
     recommendation: "",
 
@@ -84,25 +86,27 @@ function Prediction() {
             localStorage.getItem("patientVitals") || "{}"
           );
 
-const riskLevel =
-  mlResult.risk_level ||
-  mlResult.risk ||
-  "Low";
+        if (!mlResult || typeof mlResult.risk_score !== "number") {
+          setRiskData({ risk: "Not assessed", score: null, confidence: null, recommendation: "Complete the symptoms assessment to generate your personalised risk prediction.", symptoms: [], riskFactors: [], vitals: {} });
+          return;
+        }
+
+// The backend returns a clinical screening percentage.  Do not mix it with
+// the model's class-confidence values: doing so turned a 2% fatigue result
+// into an incorrect 50% score on this screen.
+// The API returns the trained model's class and probability. Do not recreate
+// a risk class from the separate clinical screening score in the browser.
+const displayedScore = Math.max(0, Math.min(100, Math.round(Number(mlResult.probability_percent) || 0)));
+const riskLevel = mlResult.risk_level || "Not assessed";
 
 const saved = {
   recommendation: mlResult.recommendation || "",
 
   risk: riskLevel,
-score: mlResult.risk_score || 0,
+ score: displayedScore,
 
   // ML confidence (highest probability)
-  confidence: Math.round(
-    Math.max(
-      Number(mlResult.low_risk || 0),
-      Number(mlResult.medium_risk || 0),
-      Number(mlResult.high_risk || 0)
-    )
-  ),
+  confidence: displayedScore,
 
   // Keep probabilities if you want to display them
   lowRisk: Number(mlResult.low_risk || 0),
@@ -613,7 +617,7 @@ score: mlResult.risk_score || 0,
 
     <div
 
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen bg-cover bg-center flex"
 
       style={{
 
@@ -667,223 +671,43 @@ score: mlResult.risk_score || 0,
         className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse"
 
       ></div>
-
-
-
-
-
-
-
-
-
-      {/* SIDEBAR */}
-
-
-
-      <div
-
-        className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col"
-
-      >
-
-
-
-
-        <Link to="/dashboard">
-
-
-          <h1 className="text-2xl font-bold text-pink-500">
-
-            GlowCare
-
-          </h1>
-
-
-
-          <p className="text-sm text-gray-500">
-
-            Maternal Health System
-
-          </p>
-
-
-
+      <UserSidebar />
+      {/* Legacy navigation kept out of the DOM layout; all user pages now use
+          the shared, responsive sidebar above. */}
+      <div className="hidden">
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
+          <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
-
-
-
-
-
-
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-
-
-
-          <NavItem
-
-            label="Dashboard"
-
-            icon={<FaHeartbeat/>}
-
-            to="/dashboard"
-
-          />
-
-
-
-          <NavItem
-
-            label="Reports"
-
-            icon={<FaFileMedical/>}
-
-            to="/reports"
-
-          />
-
-
-
-          <NavItem
-
-            label="Pregnancy Toolkit"
-
-            icon={<FaBaby/>}
-
-            to="/toolkit"
-
-          />
-
-
-
-          <NavItem
-
-            label="Symptoms"
-
-            icon={<FaNotesMedical/>}
-
-            to="/symptoms"
-
-          />
-
-
-
-          <NavItem
-
-            label="Suggestions"
-
-            icon={<FaLightbulb/>}
-
-            to="/suggestions"
-
-          />
-
-
-
-          <NavItem
-
-            label="Prediction"
-
-            icon={<FaChartLine/>}
-
-            to="/prediction"
-
-            active
-
-          />
-
-
-
-          <NavItem
-
-            label="Alerts"
-
-            icon={<FaBell/>}
-
-            to="/alerts"
-
-          />
-
-
-
-          <NavItem
-
-            label="Appointments"
-
-            icon={<FaCalendarAlt/>}
-
-            to="/appointment"
-
-          />
-
-
-
-          <NavItem
-
-            label="Profile"
-
-            icon={<FaUser/>}
-
-            to="/profile"
-
-          />
-
-
-
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
+          <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
+          <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
+          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
+          <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" active />
+          <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
+          <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
+          <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
-
-
-
-
-
-
 
         <div className="pt-4 border-t border-pink-100/50">
-
-
           <button
-
-
-            onClick={()=>{
-
-
-              localStorage.removeItem(
-                "currentUser"
-              );
-
-
-              window.location.href="/login";
-
-
+            onClick={() => {
+              localStorage.removeItem("currentUser");
+              window.location.href = "/login";
             }}
-
-
-
             className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
-
-
           >
-
             Logout
-
-
           </button>
-
-
         </div>
-
-
-
-
       </div>
-
-
-
-
-
-
-
-
 
       {/* MAIN CONTENT */}
 
@@ -891,7 +715,7 @@ score: mlResult.risk_score || 0,
 
       <div
 
-        className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto"
+        className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8"
 
       >
 
@@ -1051,7 +875,7 @@ score: mlResult.risk_score || 0,
 
                 <h2 className="text-3xl font-bold text-gray-800">
 
-                  ML Risk Analysis
+                  Pregnancy Risk Analysis
 
                 </h2>
 
@@ -1059,7 +883,7 @@ score: mlResult.risk_score || 0,
 
                 <p className="text-gray-500">
 
-                  Machine Learning Based Assessment
+                  Clinical screening assessment
 
                 </p>
 
@@ -1112,7 +936,7 @@ score: mlResult.risk_score || 0,
 
                   <p className="text-gray-500 text-sm">
 
-                    Risk Score
+                    Risk Percentage
 
                   </p>
 
@@ -1179,7 +1003,7 @@ score: mlResult.risk_score || 0,
 
                 <span className="font-semibold text-gray-700">
 
-                  ML Confidence
+                  Model confidence (not risk percentage)
 
                 </span>
 
@@ -1387,7 +1211,7 @@ score: mlResult.risk_score || 0,
 
                   <span className="text-gray-500">
 
-                    ML Score
+                  Risk Percentage
 
                   </span>
 
@@ -1413,7 +1237,7 @@ score: mlResult.risk_score || 0,
 
                   <span className="text-gray-500">
 
-                    Confidence
+                    Model confidence
 
                   </span>
 

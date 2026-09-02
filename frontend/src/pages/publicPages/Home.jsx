@@ -72,15 +72,15 @@ const Home = () => {
               <div className="mt-12 grid grid-cols-3 gap-4">
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
-                    98%
+                    Screened
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">safety</div>
+                  <div className="text-sm text-gray-500 font-medium mt-1">with clinician follow-up</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
-                    High
+                    24-feature
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">Accuracy</div>
+                  <div className="text-sm text-gray-500 font-medium mt-1">XGBoost screening</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">

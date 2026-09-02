@@ -44,49 +44,16 @@ const DoctorNotifications = () => {
     loadNotifications();
   }, []);
 
-  const loadNotifications = () => {
+  const loadNotifications = async () => {
     setLoading(true);
-    
-    // Get notifications from localStorage
-    const notifs = JSON.parse(localStorage.getItem("doctorNotifications")) || [];
-    
-    // Also check for appointment updates that might not be in notifications
-    const appointments = JSON.parse(localStorage.getItem("appointments")) || [];
-    const doctorAppointments = appointments.filter(
-      app => app.doctorId === doctor?.id || app.doctorName === doctor?.name
-    );
-    
-    // Create notifications for pending appointments if they don't exist
-    const pendingAppointments = doctorAppointments.filter(
-      app => app.status?.toLowerCase() === "pending"
-    );
-    
-    const existingNotifIds = new Set(notifs.map(n => n.id));
-    
-    pendingAppointments.forEach(app => {
-      const notifId = `appointment_${app.id}`;
-      if (!existingNotifIds.has(notifId)) {
-        notifs.push({
-          id: notifId,
-          type: "appointment",
-          patientName: app.patientName || app.patient,
-          title: "New Appointment Request",
-          message: `${app.patientName || app.patient} has requested an appointment on ${app.date} at ${app.time}`,
-          read: false,
-          createdAt: app.createdAt || new Date().toISOString(),
-          appointmentId: app.id,
-        });
-      }
-    });
-    
-    // Sort by date (newest first)
-    notifs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    localStorage.setItem("doctorNotifications", JSON.stringify(notifs));
-    
-    setNotifications(notifs);
-    setFilteredNotifications(notifs);
-    setLoading(false);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/notifications", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      if (!response.ok) throw new Error("Unable to load notifications");
+      const notifs = (await response.json()).map(item => ({ ...item, type: item.category, read: item.is_read, createdAt: item.created_at }));
+      setNotifications(notifs);
+      setFilteredNotifications(notifs);
+    } catch (error) { console.error(error); }
+    finally { setLoading(false); }
   };
 
   // Filter notifications
@@ -123,30 +90,26 @@ const DoctorNotifications = () => {
     };
   }, [doctor]);
 
-  const markAsRead = (id) => {
+  const markAsRead = async (id) => {
+    await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     const updated = notifications.map(n => 
       n.id === id ? { ...n, read: true } : n
     );
-    localStorage.setItem("doctorNotifications", JSON.stringify(updated));
     setNotifications(updated);
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
-    localStorage.setItem("doctorNotifications", JSON.stringify(updated));
-    setNotifications(updated);
+  const markAllAsRead = async () => {
+    await Promise.all(notifications.filter(n => !n.read).map(n => fetch(`http://127.0.0.1:8000/api/notifications/${n.id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })));
+    loadNotifications();
   };
 
-  const deleteNotification = (id) => {
-    const updated = notifications.filter(n => n.id !== id);
-    localStorage.setItem("doctorNotifications", JSON.stringify(updated));
-    setNotifications(updated);
+  const deleteNotification = () => {
+    // Notifications are an audit trail; marking as read is the safe dismissal action.
+    loadNotifications();
   };
 
-  const clearAll = () => {
-    localStorage.removeItem("doctorNotifications");
-    setNotifications([]);
-    setFilteredNotifications([]);
+  const clearAll = async () => {
+    await markAllAsRead();
   };
 
   const getNotificationIcon = (type) => {
@@ -189,7 +152,8 @@ const DoctorNotifications = () => {
       if (diff < 1) return "Just now";
       if (diff < 60) return `${diff}m ago`;
       if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-      return date.toLocaleDateString();
+      if (diff < 10080) return `${Math.floor(diff / 1440)}d ago`;
+      return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
     } catch {
       return dateString;
     }
@@ -213,7 +177,7 @@ const DoctorNotifications = () => {
       <div className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "1s" }}></div>
 
       {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 flex-shrink-0 h-full flex flex-col">
+      <div className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-pink-100/50 bg-white/80 backdrop-blur-2xl flex flex-col shadow-xl">
         <div className="p-5 border-b border-pink-100/50">
           <Link to="/doctor-dashboard" className="block">
             <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
@@ -250,7 +214,7 @@ const DoctorNotifications = () => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 ml-64 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
@@ -325,6 +289,7 @@ const DoctorNotifications = () => {
                       <div>
                         <p className="font-semibold text-gray-800">{notif.title || "Notification"}</p>
                         <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
+                        {notif.type === "call_request" && notif.metadata?.appointment_id && <Link to={`/call/${notif.metadata.appointment_id}`} className="mt-2 inline-block rounded-lg bg-gradient-to-r from-pink-500 to-sky-400 px-3 py-1.5 text-xs font-bold text-white">Open incoming call</Link>}
                         {notif.patientName && (
                           <p className="text-xs text-gray-400 mt-1">Patient: {notif.patientName}</p>
                         )}

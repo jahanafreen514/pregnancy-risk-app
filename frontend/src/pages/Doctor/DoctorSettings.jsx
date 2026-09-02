@@ -63,19 +63,16 @@ const DoctorSettings = () => {
   };
 
   const toggleSwitch = (name) => {
-    setSettings({
-      ...settings,
-      [name]: !settings[name],
-    });
+    const nextValue = !settings[name];
+    setSettings({ ...settings, [name]: nextValue });
+    if (name === "darkMode") {
+      document.documentElement.classList.toggle("dark", nextValue);
+      document.body.classList.toggle("dark", nextValue);
+      localStorage.setItem("theme", nextValue ? "dark" : "light");
+    }
   };
 
   const saveSettings = () => {
-    // Validate password
-    if (settings.newPassword && settings.newPassword !== settings.confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
     // Save settings
     const settingsToSave = { ...settings };
     delete settingsToSave.currentPassword;
@@ -83,15 +80,6 @@ const DoctorSettings = () => {
     delete settingsToSave.confirmPassword;
     
     localStorage.setItem("doctorSettings", JSON.stringify(settingsToSave));
-    
-    // Update password if provided
-    if (settings.newPassword) {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      const updatedUsers = users.map(u =>
-        u.id === doctor.id ? { ...u, password: settings.newPassword } : u
-      );
-      localStorage.setItem("users", JSON.stringify(updatedUsers));
-    }
     
     alert("Settings saved successfully!");
   };
@@ -111,7 +99,7 @@ const DoctorSettings = () => {
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
 
       {/* SIDEBAR */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 flex-shrink-0 h-full flex flex-col">
+      <div className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-pink-100/50 bg-white/80 backdrop-blur-2xl flex flex-col shadow-xl">
         <div className="p-5 border-b border-pink-100/50">
           <Link to="/doctor-dashboard" className="block">
             <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
@@ -136,6 +124,7 @@ const DoctorSettings = () => {
           <NavItem label="Reports" icon={<FaFileMedical />} to="/doctor-reports" active={activeTab === "reports"} onClick={() => setActiveTab("reports")} />
           <NavItem label="Prescriptions" icon={<FaPrescription />} to="/doctor-prescriptions" active={activeTab === "prescriptions"} onClick={() => setActiveTab("prescriptions")} />
           <NavItem label="Notifications" icon={<FaBell />} to="/doctor-notifications" active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
+          <NavItem label="Feedback" icon={<FaBell />} to="/share-feedback" active={false} />
           <NavItem label="Profile" icon={<FaUserMd />} to="/doctor-profile" active={activeTab === "profile"} onClick={() => setActiveTab("profile")} />
           <NavItem label="Settings" icon={<FaCog />} to="/doctor-settings" active={activeTab === "settings"} onClick={() => setActiveTab("settings")} />
         </div>
@@ -148,7 +137,7 @@ const DoctorSettings = () => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 ml-64 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
@@ -263,35 +252,8 @@ const DoctorSettings = () => {
             <h3 className="font-bold flex items-center gap-2 mb-4 text-gray-800">
               <FaLock className="text-gray-500" /> Change Password
             </h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <input
-                type="password"
-                placeholder="Current Password"
-                name="currentPassword"
-                value={settings.currentPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-              <input
-                type="password"
-                placeholder="New Password"
-                name="newPassword"
-                value={settings.newPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                name="confirmPassword"
-                value={settings.confirmPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-            </div>
-            {settings.newPassword && settings.confirmPassword && settings.newPassword !== settings.confirmPassword && (
-              <p className="text-red-500 text-sm mt-2">Passwords do not match!</p>
-            )}
+            <p className="text-sm text-gray-500">For your security, password changes require an email OTP.</p>
+            <Link to="/forgot-password" className="mt-3 inline-block rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 px-4 py-2 text-sm font-bold text-white">Change password with OTP</Link>
           </div>
 
           {/* Security */}

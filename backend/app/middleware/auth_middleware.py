@@ -27,6 +27,12 @@ async def get_current_user(
 
         user_id = payload.get("sub")
 
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=401,
+                detail="Access token required"
+            )
+
         if not user_id:
             raise HTTPException(
                 status_code=401,

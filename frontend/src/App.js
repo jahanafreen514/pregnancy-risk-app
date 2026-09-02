@@ -4,11 +4,13 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 
 import { AnimatePresence } from "framer-motion";
 
 import Navbar from "./components/Navbar";
+import DoctorSidebar from "./components/DoctorSidebar";
 
 
 // Public Pages
@@ -25,6 +27,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import DoctorLogin from "./pages/auth/DoctorLogin";
 import DoctorRegister from "./pages/auth/DoctorRegister";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 
 
 // User Pages
@@ -37,12 +40,17 @@ import Prediction from "./pages/user/Prediction";
 import Profile from "./pages/user/Profile";
 import EditProfile from "./pages/user/EditProfile";
 import Reports from "./pages/user/Reports";
+import Reminders from "./pages/user/Reminders";
+import Prescriptions from "./pages/user/Prescriptions";
+import UserSettings from "./pages/user/UserSettings";
 
 
 // Extra
 import Appointment from "./pages/extra/Appointment";
 import Doctors from "./pages/extra/Doctors";
 import Starting from "./pages/extra/Starting";
+import OnlineCall from "./pages/extra/OnlineCall";
+import Feedback from "./pages/shared/Feedback";
 
 
 // Admin
@@ -54,7 +62,6 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminDoctors from "./pages/admin/AdminDoctors";
 import AdminSystemStatus from "./pages/admin/AdminSystemStatus";
-import DoctorVerification from "./pages/admin/DoctorVerification";
 
 
 // Doctor
@@ -69,9 +76,22 @@ import DoctorNotifications from "./pages/Doctor/DoctorNotifications";
 
 
 import "./index.css";
+
+function RoleRoute({ roles, children }) {
+  const user = JSON.parse(localStorage.getItem("currentUser") || "null");
+  if (!user || !localStorage.getItem("token")) return <Navigate to="/login" replace />;
+  if (!roles.includes(user.role)) {
+    const destination = user.role === "admin" ? "/admin-dashboard" : user.role === "doctor" ? "/doctor-dashboard" : "/dashboard";
+    return <Navigate to={destination} replace />;
+  }
+  return children;
+}
+
 function AppLayout({ darkMode, setDarkMode }) {
 
   const location = useLocation();
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+  const showDoctorMobileNav = currentUser?.role === "doctor" && location.pathname.startsWith("/doctor-");
 
 
   const showNavbarPages = [
@@ -98,8 +118,10 @@ function AppLayout({ darkMode, setDarkMode }) {
         )
       }
 
+      {showDoctorMobileNav && <DoctorSidebar />}
 
-      <div className="min-h-screen bg-white dark:bg-gray-900 transition-all">
+
+      <div className={`min-h-screen bg-white dark:bg-gray-900 transition-all ${showDoctorMobileNav ? "doctor-shell" : ""}`}>
 
 
         <AnimatePresence
@@ -156,6 +178,7 @@ function AppLayout({ darkMode, setDarkMode }) {
               path="/forgot-password"
               element={<ForgotPassword />}
             />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
 
 
@@ -191,55 +214,58 @@ function AppLayout({ darkMode, setDarkMode }) {
 
             <Route
               path="/dashboard"
-              element={<Dashboard />}
+              element={<RoleRoute roles={["user", "patient"]}><Dashboard /></RoleRoute>}
             />
 
 
             <Route
               path="/toolkit"
-              element={<PregnancyToolkit />}
+              element={<RoleRoute roles={["user", "patient"]}><PregnancyToolkit /></RoleRoute>}
             />
 
 
             <Route
               path="/alerts"
-              element={<Alerts />}
+              element={<RoleRoute roles={["user", "patient"]}><Alerts /></RoleRoute>}
             />
 
 
             <Route
               path="/symptoms"
-              element={<Symptoms />}
+              element={<RoleRoute roles={["user", "patient"]}><Symptoms /></RoleRoute>}
             />
 
 
             <Route
               path="/suggestions"
-              element={<Suggestions />}
+              element={<RoleRoute roles={["user", "patient"]}><Suggestions /></RoleRoute>}
             />
 
 
             <Route
               path="/prediction"
-              element={<Prediction />}
+              element={<RoleRoute roles={["user", "patient"]}><Prediction /></RoleRoute>}
             />
 
 
             <Route
               path="/reports"
-              element={<Reports />}
+              element={<RoleRoute roles={["user", "patient"]}><Reports /></RoleRoute>}
             />
+            <Route path="/reminders" element={<RoleRoute roles={["user", "patient"]}><Reminders /></RoleRoute>} />
+            <Route path="/prescriptions" element={<RoleRoute roles={["user", "patient"]}><Prescriptions /></RoleRoute>} />
+            <Route path="/settings" element={<RoleRoute roles={["user", "patient"]}><UserSettings /></RoleRoute>} />
 
 
             <Route
               path="/profile"
-              element={<Profile />}
+              element={<RoleRoute roles={["user", "patient", "doctor", "admin"]}><Profile /></RoleRoute>}
             />
 
 
             <Route
               path="/profile/edit"
-              element={<EditProfile />}
+              element={<RoleRoute roles={["user", "patient"]}><EditProfile /></RoleRoute>}
             />
 
 
@@ -257,7 +283,7 @@ function AppLayout({ darkMode, setDarkMode }) {
 
             <Route
               path="/appointment"
-              element={<Appointment />}
+              element={<RoleRoute roles={["user", "patient"]}><Appointment /></RoleRoute>}
             />
 
 
@@ -265,6 +291,8 @@ function AppLayout({ darkMode, setDarkMode }) {
               path="/doctors"
               element={<Doctors />}
             />
+            <Route path="/call/:appointmentId" element={<RoleRoute roles={["user", "patient", "doctor"]}><OnlineCall /></RoleRoute>} />
+            <Route path="/share-feedback" element={<RoleRoute roles={["user", "patient", "doctor"]}><Feedback /></RoleRoute>} />
 
 
 
@@ -276,49 +304,49 @@ function AppLayout({ darkMode, setDarkMode }) {
 
             <Route
               path="/doctor-dashboard"
-              element={<DoctorDashboard />}
+              element={<RoleRoute roles={["doctor"]}><DoctorDashboard /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-patients"
-              element={<DoctorPatients />}
+              element={<RoleRoute roles={["doctor"]}><DoctorPatients /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-appointments"
-              element={<DoctorAppointments />}
+              element={<RoleRoute roles={["doctor"]}><DoctorAppointments /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-reports"
-              element={<DoctorReports />}
+              element={<RoleRoute roles={["doctor"]}><DoctorReports /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-profile"
-              element={<DoctorProfile />}
+              element={<RoleRoute roles={["doctor"]}><DoctorProfile /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-settings"
-              element={<DoctorSettings />}
+              element={<RoleRoute roles={["doctor"]}><DoctorSettings /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-prescriptions"
-              element={<DoctorPrescriptions />}
+              element={<RoleRoute roles={["doctor"]}><DoctorPrescriptions /></RoleRoute>}
             />
 
 
             <Route
               path="/doctor-notifications"
-              element={<DoctorNotifications />}
+              element={<RoleRoute roles={["doctor"]}><DoctorNotifications /></RoleRoute>}
             />
 
 
@@ -331,55 +359,55 @@ function AppLayout({ darkMode, setDarkMode }) {
 
             <Route
               path="/admin-dashboard"
-              element={<AdminDashboard />}
+              element={<RoleRoute roles={["admin"]}><AdminDashboard /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-users"
-              element={<AdminUsers />}
+              element={<RoleRoute roles={["admin"]}><AdminUsers /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-doctors"
-              element={<AdminDoctors />}
+              element={<RoleRoute roles={["admin"]}><AdminDoctors /></RoleRoute>}
             />
 
 
             <Route
               path="/admin/doctor-verification"
-              element={<DoctorVerification />}
+              element={<RoleRoute roles={["admin"]}><Navigate to="/admin-doctors" replace /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-alerts"
-              element={<AdminAlerts />}
+              element={<RoleRoute roles={["admin"]}><AdminAlerts /></RoleRoute>}
             />
 
 
             <Route
               path="/feedback"
-              element={<AdminFeedback />}
+              element={<RoleRoute roles={["admin"]}><AdminFeedback /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-reports"
-              element={<AdminReports />}
+              element={<RoleRoute roles={["admin"]}><AdminReports /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-settings"
-              element={<AdminSettings />}
+              element={<RoleRoute roles={["admin"]}><AdminSettings /></RoleRoute>}
             />
 
 
             <Route
               path="/admin-systemstatus"
-              element={<AdminSystemStatus />}
+              element={<RoleRoute roles={["admin"]}><AdminSystemStatus /></RoleRoute>}
             />
 
 
@@ -398,7 +426,9 @@ function AppLayout({ darkMode, setDarkMode }) {
 }
 function App() {
 
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark"
+  );
 
 
 
@@ -409,12 +439,16 @@ function App() {
       document.documentElement.classList.add(
         "dark"
       );
+      document.body.classList.add("dark");
+      localStorage.setItem("theme", "dark");
 
     } else {
 
       document.documentElement.classList.remove(
         "dark"
       );
+      document.body.classList.remove("dark");
+      localStorage.setItem("theme", "light");
 
     }
 

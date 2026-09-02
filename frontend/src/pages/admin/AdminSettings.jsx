@@ -40,29 +40,22 @@ const AdminSettings = () => {
   };
 
   const toggleSwitch = (name) => {
-    setSettings({ ...settings, [name]: !settings[name] });
+    const nextValue = !settings[name];
+    setSettings({ ...settings, [name]: nextValue });
+    if (name === "darkMode") {
+      document.documentElement.classList.toggle("dark", nextValue);
+      document.body.classList.toggle("dark", nextValue);
+      localStorage.setItem("theme", nextValue ? "dark" : "light");
+    }
   };
 
   const saveSettings = () => {
-    if (settings.newPassword && settings.newPassword !== settings.confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
     const settingsToSave = { ...settings };
     delete settingsToSave.currentPassword;
     delete settingsToSave.newPassword;
     delete settingsToSave.confirmPassword;
     
     localStorage.setItem("adminSettings", JSON.stringify(settingsToSave));
-
-    if (settings.newPassword) {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      const updatedUsers = users.map(u =>
-        u.id === admin?.id ? { ...u, password: settings.newPassword } : u
-      );
-      localStorage.setItem("users", JSON.stringify(updatedUsers));
-    }
 
     alert("Settings saved successfully!");
   };
@@ -166,35 +159,8 @@ const AdminSettings = () => {
             <h3 className="font-bold flex items-center gap-2 mb-4 text-gray-800">
               <Key className="text-gray-500" /> Change Password
             </h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <input
-                type="password"
-                placeholder="Current Password"
-                name="currentPassword"
-                value={settings.currentPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-              <input
-                type="password"
-                placeholder="New Password"
-                name="newPassword"
-                value={settings.newPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                name="confirmPassword"
-                value={settings.confirmPassword}
-                onChange={handleChange}
-                className="border border-pink-100 rounded-xl p-3 bg-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              />
-            </div>
-            {settings.newPassword && settings.confirmPassword && settings.newPassword !== settings.confirmPassword && (
-              <p className="text-red-500 text-sm mt-2">Passwords do not match!</p>
-            )}
+            <p className="text-sm text-gray-500">For your security, password changes require an email OTP.</p>
+            <a href="/forgot-password" className="mt-3 inline-block rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 px-4 py-2 text-sm font-bold text-white">Change password with OTP</a>
           </div>
 
           {/* Security */}

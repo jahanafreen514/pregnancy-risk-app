@@ -26,6 +26,8 @@ class PregnancyRecord(Document):
     risk_score: int = 0
 
     risk_level: str = "Low"
+    probability: Optional[float] = None
+    model_version: Optional[str] = None
 
     created_at: datetime = datetime.utcnow()
 
@@ -43,6 +45,19 @@ class Appointment(Document):
     reason: str | None = None
 
     status: str = "pending"
+
+    appointment_type: str = "in_person"
+    reminder_sent: bool = False
+    call_status: str = "idle"  # idle, ringing, active, rejected, ended, missed
+    call_initiator_id: Optional[str] = None
+    call_ringing_at: Optional[datetime] = None
+    call_started_at: Optional[datetime] = None
+    call_ended_at: Optional[datetime] = None
+    call_duration_seconds: int = 0
+    # WhatsApp/WebRTC may not report call completion to GlowCare. Both users
+    # explicitly confirm before the appointment status becomes completed.
+    call_joined_by: list[str] = Field(default_factory=list)
+    call_completed_by: list[str] = Field(default_factory=list)
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)

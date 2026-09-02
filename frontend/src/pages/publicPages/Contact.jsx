@@ -22,6 +22,7 @@ import {
   FaGlobe,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -78,30 +79,21 @@ const Contact = () => {
     setError("");
     setSuccess(false);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Check if message contains spam keywords (demo validation)
-    const spamKeywords = ["viagra", "casino", "porn", "xxx"];
-    const hasSpam = spamKeywords.some(keyword => 
-      formData.message.toLowerCase().includes(keyword)
-    );
-
-    if (hasSpam) {
-      setError("Message contains inappropriate content. Please revise.");
+    try {
+      const response = await fetch(apiUrl("/contact"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Unable to send your message.");
+      setSuccess(true);
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (requestError) {
+      setError(requestError.message || "Unable to send your message. Please try again.");
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Success
-    setSuccess(true);
-    setIsLoading(false);
-    setFormData({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
 
     // Auto-hide success after 5 seconds
     setTimeout(() => {

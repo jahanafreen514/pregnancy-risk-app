@@ -19,8 +19,9 @@ FaChartLine,
 FaBell,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import { apiUrl } from "../../config/runtime";
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 const AdminLogin = () => {
 const navigate = useNavigate();
@@ -71,7 +72,7 @@ try {
   );
 
   const response = await fetch(
-    `${API_URL}/auth/login`,
+    `${API_URL}/auth/admin-login`,
     {
       method: "POST",
 

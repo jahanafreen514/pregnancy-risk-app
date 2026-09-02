@@ -134,11 +134,11 @@ function AuthInfo() {
           <FaChartLine className="text-sky-500 text-3xl mb-3" />
 
           <h3 className="text-3xl font-bold text-gray-800">
-            98%
+            24 features
           </h3>
 
           <p className="text-gray-500 mt-2">
-            Prediction Accuracy
+            XGBoost screening model
           </p>
 
         </div>

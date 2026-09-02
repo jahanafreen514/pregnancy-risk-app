@@ -1,3 +1,4 @@
+from datetime import timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 
@@ -21,6 +22,18 @@ router = APIRouter(
 )
 
 
+def serialize_alert(alert: Alert) -> dict:
+    """Convert Beanie's ObjectId into the string required by AlertOut."""
+    data = alert.model_dump(mode="json")
+    # Older alerts used naive UTC values. Explicit UTC makes browser conversion
+    # accurate instead of treating that UTC time as the device's local time.
+    created_at = alert.created_at
+    if created_at and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    data["created_at"] = created_at.isoformat() if created_at else None
+    return {**data, "id": str(alert.id)}
+
+
 
 @router.get(
     "",
@@ -30,11 +43,12 @@ async def list_alerts(
     user: User = Depends(get_current_user)
 ):
 
-    return await Alert.find(
+    items = await Alert.find(
         Alert.user_id == str(user.id)
     ).sort(
         -Alert.created_at
     ).to_list()
+    return [serialize_alert(item) for item in items]
 
 
 
@@ -58,7 +72,7 @@ async def send_alert(
 
     await alert.insert()
 
-    return alert
+    return serialize_alert(alert)
 
 
 
@@ -93,4 +107,4 @@ async def mark_read(
 
     await alert.save()
 
-    return alert
+    return serialize_alert(alert)

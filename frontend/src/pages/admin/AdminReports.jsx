@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "./AdminLayout";
+import { apiUrl } from "../../config/runtime";
 
 import {
   FileText,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 
 const AdminReports = () => {

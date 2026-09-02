@@ -43,6 +43,10 @@ class PredictionResponse(BaseModel):
     risk_level: str
 
     risk_score: int
+    probability: float
+    probability_percent: float
+    prediction_time: str
+    model_version: str
 
     low_risk: float
     medium_risk: float

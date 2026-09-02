@@ -13,6 +13,16 @@ class DoctorProfile(Document):
     license_number: Optional[str] = None
 
     hospital: Optional[str] = None
+    # Address entered by the doctor.  GPS coordinates are optional because a
+    # practitioner may prefer not to share their current location.
+    address: Optional[str] = None
+    area: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
     # New doctor verification fields

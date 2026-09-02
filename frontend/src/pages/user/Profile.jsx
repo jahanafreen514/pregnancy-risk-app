@@ -29,6 +29,8 @@ import {
   FaWater,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
+import UserSidebar from "../../components/UserSidebar";
+import { apiUrl } from "../../config/runtime";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -149,8 +151,33 @@ const Profile = () => {
 
   useEffect(() => {
     loadAllData();
-    const interval = setInterval(loadAllData, 3000);
-    return () => clearInterval(interval);
+    const loadOverview = async () => {
+      try {
+        const response = await fetch(apiUrl("/users/me/overview"), { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } });
+        if (!response.ok) return;
+        const overview = await response.json();
+        const latest = overview.latest || {};
+        const timing = overview.pregnancy_timing || {};
+        const level = latest.risk_level || "Not assessed";
+        setUser(current => ({ ...(current || {}), ...overview.user }));
+        setHealthData(current => ({
+          ...current,
+          heartRate: latest.heart_rate ? `${latest.heart_rate} bpm` : "Not recorded",
+          bloodPressure: latest.bp_systolic && latest.bp_diastolic ? `${latest.bp_systolic}/${latest.bp_diastolic}` : "Not recorded",
+          week: timing.pregnancy_week ? `${timing.pregnancy_week} Weeks` : (latest.pregnancy_week ? `${latest.pregnancy_week} Weeks` : "Not recorded"),
+          trimester: timing.trimester ? `${timing.trimester}${timing.trimester === 1 ? "st" : timing.trimester === 2 ? "nd" : "rd"}` : "Not recorded",
+          bloodGroup: overview.user?.blood_group || "Not recorded",
+          riskLevel: level,
+          // Risk and health are inverse measures; this keeps Profile aligned with Dashboard.
+          healthScore: typeof latest.risk_score === "number" ? Math.max(0, 100 - latest.risk_score) : 0,
+          symptoms: latest.symptoms || [],
+          medications: Array(overview.prescriptions?.total || 0).fill({}),
+        }));
+      } catch { /* the existing page retains its explicit local fallback while offline */ }
+    };
+    loadOverview();
+    const refresh = setInterval(() => { loadAllData(); loadOverview(); }, 15000);
+    return () => clearInterval(refresh);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -201,7 +228,7 @@ const Profile = () => {
 
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen bg-cover bg-center flex"
       style={{
         backgroundImage: `url(${bg})`,
       }}
@@ -220,28 +247,35 @@ const Profile = () => {
         style={{ animationDelay: "1s" }}
       ></div>
 
-      {/* SIDEBAR - FIXED FULL HEIGHT */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col overflow-y-auto">
+      <UserSidebar />
+      <div className="hidden">
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
-          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" />
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" active />
           <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
           <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
           <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
           <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
           <NavItem label="Profile" icon={<FaUser />} to="/profile" active />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
 
         <div className="pt-4 border-t border-pink-100/50">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              localStorage.removeItem("currentUser");
+              window.location.href = "/login";
+            }}
             className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
           >
             Logout
@@ -249,8 +283,9 @@ const Profile = () => {
         </div>
       </div>
 
+
       {/* MAIN CONTENT - SCROLLABLE */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8">
         {/* Top Bar - Sticky */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div>
@@ -338,10 +373,6 @@ const Profile = () => {
                 <div className="flex items-center justify-between p-3 bg-pink-50/50 rounded-xl">
                   <span className="text-sm text-gray-600">Trimester</span>
                   <span className="font-bold text-purple-500">{healthData.trimester}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-pink-50/50 rounded-xl">
-                  <span className="text-sm text-gray-600">Medications</span>
-                  <span className="font-bold text-pink-500">{healthData.medications?.length || 0}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-pink-50/50 rounded-xl">
                   <span className="text-sm text-gray-600">Symptoms</span>

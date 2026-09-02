@@ -10,6 +10,26 @@ body {
   overflow-x: hidden;
 }
 
+/* Every doctor route uses the shared DoctorSidebar. Hide the copied legacy
+   rails and reserve the same desktop space as the user portal. */
+.doctor-shell div[class*="w-64"][class*="relative"],
+.doctor-shell div[class*="w-64"][class*="fixed"][class*="left-0"],
+.doctor-shell aside[class*="w-64"][class*="relative"] { display: none !important; }
+
+@media (min-width: 1024px) {
+  .doctor-shell .relative.z-10.flex-1 { margin-left: 16rem; }
+}
+
+/* Role dashboards share a 16rem desktop navigation rail.  At tablet/mobile
+   widths the rail is removed so fixed sidebars never cover page content. */
+@media (max-width: 1023px) {
+  #admin-shared-sidebar { display: flex !important; }
+  div[class*="fixed"][class*="left-0"][class*="w-64"],
+  div[class*="fixed"][class*="left-0"][class*="w-72"] { display: none !important; }
+  div[class*="relative"][class*="w-64"][class*="h-screen"] { display: none !important; }
+  [class*="ml-64"], [class*="ml-72"], [class*="pl-72"] { margin-left: 0 !important; padding-left: 1rem !important; }
+}
+
 /* Light Mode */
 body.light {
   background: #fff5f7;

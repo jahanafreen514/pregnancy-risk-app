@@ -19,7 +19,8 @@ import {
  FaSpinner,
  FaSearch,
  FaEnvelope,
- FaPhone
+FaPhone
+ ,FaVideo
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
@@ -127,7 +128,7 @@ const loadAppointments = async () => {
     JSON.parse(localStorage.getItem("currentUser"));
 
 
-  const token = currentUser?.token;
+  const token = localStorage.getItem("token");
 
 
   if(!token){
@@ -229,8 +230,7 @@ localStorage.getItem("currentUser")
 
 
 
-const token =
-currentUser?.token;
+const token = localStorage.getItem("token");
 
 
 
@@ -422,9 +422,9 @@ if(typeFilter!=="all"){
 filtered=
 filtered.filter(
 (app)=>
-app.type?.toLowerCase()
+(app.appointment_type || app.type || "").toLowerCase().replace("_", "-")
 ===
-typeFilter.toLowerCase()
+typeFilter.toLowerCase().replace("_", "-")
 );
 
 }
@@ -707,7 +707,7 @@ shadow-lg
 
 
 }
-<div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 flex-shrink-0 h-full flex flex-col">
+<div className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-pink-100/50 bg-white/80 backdrop-blur-2xl flex flex-col shadow-xl">
         {/* Doctor Profile */}
         <div className="p-5 border-b border-pink-100/50">
           <Link to="/doctor-dashboard" className="block">
@@ -808,6 +808,7 @@ shadow-lg
 <div className="
 relative
 z-10
+ml-64
 flex-1
 p-6
 overflow-y-auto
@@ -1367,6 +1368,8 @@ app.status==="accepted"
 
 &&
 
+<>
+{app.appointment_type === "online" && <Link to={`/call/${app.id}`} className="bg-[#25D366] text-white px-3 py-1 rounded-lg text-xs">WhatsApp</Link>}
 <button
 
 onClick={()=>
@@ -1390,6 +1393,7 @@ text-xs
 Complete
 
 </button>
+</>
 
 
 }

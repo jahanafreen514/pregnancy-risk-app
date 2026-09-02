@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import heroMother from "../../assets/images/hero-mother.png";
 import bg from "../../assets/images/bg.png";
+import UserSidebar from "../../components/UserSidebar";
 import {
   FaHeartbeat,
   FaFileMedical,
@@ -54,9 +55,9 @@ const COLORS = ["#f472b6", "#7dd3fc", "#fbcfe8"];
 
 const Dashboard = () => {
   const [riskData, setRiskData] = useState({
-    risk: "Low",
-    score: 15,
-    confidence: 95,
+    risk: "Not assessed",
+    score: 0,
+    confidence: 0,
     symptoms: [],
     riskFactors: [],
   });
@@ -66,8 +67,19 @@ const Dashboard = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [appointments, setAppointments] = useState([]);
-  const [heartRate, setHeartRate] = useState(78);
-  const [healthScore, setHealthScore] = useState(92);
+  const [reminderCount, setReminderCount] = useState(0);
+  const [heartRate, setHeartRate] = useState(0);
+  const [now, setNow] = useState(() => new Date());
+
+  // Keeps the calendar label current across a day boundary without requiring
+  // a reload or any user interaction.
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  const [healthScore, setHealthScore] = useState(0);
+  const [chartHealthData, setChartHealthData] = useState([]);
+  const [riskPieData, setRiskPieData] = useState([]);
 
   const loadDashboardData = () => {
     // Load user
@@ -78,9 +90,9 @@ const Dashboard = () => {
     const savedRisk = JSON.parse(
       localStorage.getItem(`riskData_${user?.email}`)
     ) || JSON.parse(localStorage.getItem("riskData")) || {
-      risk: "Low",
-      score: 15,
-      confidence: 95,
+      risk: "Not assessed",
+      score: 0,
+      confidence: 0,
       symptoms: [],
       riskFactors: [],
     };
@@ -96,19 +108,42 @@ const Dashboard = () => {
     const hr = JSON.parse(localStorage.getItem("heartRate")) || 78;
     setHeartRate(hr);
 
-    // Load appointments
-    const allAppointments = JSON.parse(localStorage.getItem("appointments")) || [];
-    const userAppointments = allAppointments.filter(
-      (app) => app.patientEmail === user?.email
-    );
-    setAppointments(userAppointments);
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("http://127.0.0.1:8000/api/appointments/patient", { headers: { Authorization: `Bearer ${token}` } })
+        .then(response => response.ok ? response.json() : [])
+        .then(data => setAppointments(data.map(app => ({ ...app, doctor: app.doctor_name, date: app.scheduled_for, time: new Date(app.scheduled_for).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}), type: app.appointment_type }))));
+      fetch("http://127.0.0.1:8000/api/reminders", { headers: { Authorization: `Bearer ${token}` } })
+        .then(response => response.ok ? response.json() : []).then(data => setReminderCount(data.filter(item => item.enabled).length));
+      fetch("http://127.0.0.1:8000/api/users/me/overview", { headers: { Authorization: `Bearer ${token}` } })
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+          if (!data) return;
+          const latest = data.latest;
+          if (data.pregnancy_timing?.pregnancy_week) {
+            localStorage.setItem("pregnancyWeek", String(data.pregnancy_timing.pregnancy_week));
+            window.dispatchEvent(new Event("pregnancyTimingUpdated"));
+          }
+          if (latest) {
+            const liveRisk = { risk: latest.risk_level, score: latest.risk_score, confidence: 0, symptoms: latest.symptoms || [], riskFactors: [], vitals: { heartRate: latest.heart_rate, bpSystolic: latest.bp_systolic, bpDiastolic: latest.bp_diastolic, sugar: latest.sugar, temperature: latest.temperature, week: latest.pregnancy_week } };
+            setRiskData(liveRisk);
+            setHeartRate(Number(latest.heart_rate) || 0);
+            calculateHealthScore(liveRisk, water, medicines);
+          }
+          setChartHealthData((data.history || []).map((item, index) => ({ day: `Check ${index + 1}`, heart: Number(item.heart_rate) || 0 })));
+          const counts = (data.history || []).reduce((result, item) => ({ ...result, [item.risk_level]: (result[item.risk_level] || 0) + 1 }), {});
+          setRiskPieData(Object.entries(counts).map(([name, value]) => ({ name, value })));
+          setReminderCount(data.active_reminders || 0);
+          setMedicines(Array.from({ length: data.prescriptions?.total || 0 }, (_, index) => ({ id: index, taken: index < (data.prescriptions?.completed || 0) })));
+        });
+    }
 
     // Calculate health score
     calculateHealthScore(savedRisk, water, medicines);
   };
 
   const calculateHealthScore = (risk, water, meds) => {
-    let score = 92;
+    let score = 0;
     if (risk) {
       if (risk.risk === "High") {
         score = 100 - (risk.score || 0) * 0.7;
@@ -137,7 +172,7 @@ const Dashboard = () => {
       case "Moderate": return "text-orange-500";
       case "Medium": return "text-orange-500";
       case "Low": return "text-green-500";
-      default: return "text-green-500";
+      default: return "text-gray-500";
     }
   };
 
@@ -153,8 +188,9 @@ const Dashboard = () => {
 
   // Get upcoming appointment
   const getUpcomingAppointment = () => {
-    if (appointments.length === 0) return null;
-    const sorted = [...appointments].sort((a, b) => 
+    const futureAppointments = appointments.filter(item => new Date(item.date) >= new Date() && !["cancelled", "rejected", "completed"].includes(item.status));
+    if (futureAppointments.length === 0) return null;
+    const sorted = [...futureAppointments].sort((a, b) => 
       new Date(a.date) - new Date(b.date)
     );
     return sorted[0];
@@ -164,7 +200,7 @@ const Dashboard = () => {
 
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen bg-cover bg-center flex"
       style={{
         backgroundImage: `url(${bg})`,
       }}
@@ -184,7 +220,8 @@ const Dashboard = () => {
       ></div>
 
       {/* SIDEBAR - FIXED */}
-      <div className="relative z-10 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 flex-shrink-0 h-full flex flex-col">
+      <UserSidebar />
+      <div className="hidden">
         <Link to="/dashboard" className="block">
           <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
           <p className="text-sm text-gray-500">Maternal Health System</p>
@@ -193,13 +230,17 @@ const Dashboard = () => {
         <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
           <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard" active />
           <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
           <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
           <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" />
           <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
           <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
           <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
           <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
           <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
 
         <div className="pt-4 border-t border-pink-100/50">
@@ -216,14 +257,14 @@ const Dashboard = () => {
       </div>
 
       {/* MAIN CONTENT - SCROLLABLE */}
-      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8">
         
         {/* Top Bar */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm shadow-lg animate-pulse">
+            <Link to="/profile" aria-label="Open profile" className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm shadow-lg animate-pulse">
               {currentUser?.name?.charAt(0).toUpperCase() || "U"}
-            </div>
+            </Link>
             <div>
               <h2 className="text-lg font-bold text-gray-800">
                 Welcome back, {currentUser?.name?.split(" ")[0] || "User"}! 👋
@@ -241,7 +282,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-pink-100 hover:shadow-md transition-all duration-300">
             <FaClock className="text-pink-400 text-sm" />
             <span className="text-xs text-gray-500">
-              {new Date().toLocaleDateString('en-US', { 
+              {now.toLocaleDateString('en-US', { 
                 weekday: 'short', 
                 month: 'short', 
                 day: 'numeric' 
@@ -298,8 +339,8 @@ const Dashboard = () => {
                   <p className="text-sm font-bold text-pink-500">24/7</p>
                 </div>
                 <div className="bg-gradient-to-r from-sky-50 to-sky-100/50 backdrop-blur-sm rounded-xl p-3 text-center hover:scale-105 transition-all duration-300">
-                  <p className="text-xs text-gray-500">ML Risk</p>
-                  <p className="text-sm font-bold text-sky-500">98%</p>
+                  <p className="text-xs text-gray-500">Model inputs</p>
+                  <p className="text-sm font-bold text-sky-500">24 features</p>
                 </div>
                 <div className="bg-gradient-to-r from-purple-50 to-purple-100/50 backdrop-blur-sm rounded-xl p-3 text-center hover:scale-105 transition-all duration-300">
                   <p className="text-xs text-gray-500">Support</p>
@@ -405,11 +446,12 @@ const Dashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <Stat icon={<FaHeartbeat />} label="Heart Rate" value={`${heartRate} bpm`} color="pink" />
-          <Stat icon={<FaTint />} label="Blood Pressure" value="120/80" color="sky" />
-          <Stat icon={<FaWeight />} label="Weight" value="68 kg" color="pink" />
+          <Stat icon={<FaTint />} label="Blood Pressure" value={riskData.vitals?.bpSystolic && riskData.vitals?.bpDiastolic ? `${riskData.vitals.bpSystolic}/${riskData.vitals.bpDiastolic}` : "Not recorded"} color="sky" />
+          <Stat icon={<FaWeight />} label="Weight" value={riskData.vitals?.weight ? `${riskData.vitals.weight} kg` : "Not recorded"} color="pink" />
           <Stat icon={<FaBaby />} label="Baby Growth" value={riskData.risk === "High" ? "Monitoring" : "Normal"} color="sky" />
           <Stat icon={<FaTint />} label="Water Intake" value={`${water}/10`} color="sky" />
           <Stat icon={<FaPills />} label="Medicines" value={medicines.length} color="pink" />
+          <Link to="/reminders" className="block"><Stat icon={<FaBell />} label="Active Reminders" value={reminderCount} color="sky" /></Link>
         </div>
 
         {/* Charts Section */}
@@ -423,7 +465,7 @@ const Dashboard = () => {
               <span className="text-xs text-gray-400 bg-pink-50 px-3 py-1 rounded-full">Last 6 days</span>
             </div>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={healthData}>
+              <LineChart data={chartHealthData}>
                 <XAxis dataKey="day" stroke="#cbd5e1" fontSize={12} />
                 <YAxis stroke="#cbd5e1" fontSize={12} />
                 <Tooltip />
@@ -443,8 +485,8 @@ const Dashboard = () => {
             <h3 className="font-bold text-gray-700 mb-4 text-center">Health Status</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" outerRadius={80} label={({ name }) => name}>
-                  {pieData.map((entry, index) => (
+                <Pie data={riskPieData} dataKey="value" outerRadius={80} label={({ name }) => name}>
+                  {riskPieData.map((entry, index) => (
                     <Cell key={index} fill={COLORS[index]} />
                   ))}
                 </Pie>
@@ -463,13 +505,10 @@ const Dashboard = () => {
             </h3>
             <div className="space-y-3">
               <AlertItem icon="💧" text={`Water Reminder - ${water}/10 glasses`} time="Now" color="pink" />
-              {medicines.filter(m => !m.taken).length > 0 && (
-                <AlertItem icon="💊" text={`Take ${medicines.filter(m => !m.taken).length} medication(s)`} time="Pending" color="sky" />
-              )}
               {riskData.risk === "High" && (
                 <AlertItem icon="⚠️" text="High risk detected - Consult doctor" time="Urgent" color="red" />
               )}
-              {riskData.risk === "Moderate" && (
+              {(riskData.risk === "Moderate" || riskData.risk === "Medium") && (
                 <AlertItem icon="📋" text="Moderate risk - Monitor symptoms" time="Today" color="orange" />
               )}
             </div>
@@ -483,6 +522,7 @@ const Dashboard = () => {
             {upcomingApp ? (
               <div className="bg-gradient-to-r from-pink-50 to-sky-50 p-4 rounded-2xl hover:scale-105 transition-all duration-300">
                 <p className="font-semibold text-gray-800 text-lg">{upcomingApp.doctor}</p>
+                <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${upcomingApp.status === "accepted" ? "bg-green-100 text-green-700" : upcomingApp.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>Appointment {upcomingApp.status}</span>
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span className="flex items-center gap-1">
                     <FaClock className="text-pink-400" />

@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.report_model import Report
 
@@ -7,6 +9,7 @@ from app.models.alert_model import Alert
 from app.models.pregnancy_model import Appointment, PregnancyRecord
 from app.models.user_model import User
 from app.models.doctor_model import DoctorProfile
+from app.models.feedback_model import Feedback
 
 from app.schemas.admin_schema import StatusUpdate
 
@@ -15,6 +18,7 @@ router = APIRouter(
     prefix="/admin",
     tags=["Administration"]
 )
+SERVER_STARTED_AT = time.monotonic()
 
 
 # =========================
@@ -71,6 +75,8 @@ async def dashboard(
     high_risk_count = await PregnancyRecord.find(
         PregnancyRecord.risk_level == "High"
     ).count()
+    medium_risk_count = await PregnancyRecord.find(PregnancyRecord.risk_level == "Medium").count()
+    low_risk_count = await PregnancyRecord.find(PregnancyRecord.risk_level == "Low").count()
 
 
     appointments_count = await Appointment.count()
@@ -79,14 +85,61 @@ async def dashboard(
     unread_alerts = await Alert.find(
         Alert.is_read == False
     ).count()
+    report_count = await Report.count()
 
 
     return {
         "users": users_count,
         "doctors": doctors_count,
         "highRiskRecords": high_risk_count,
+        "mediumRiskRecords": medium_risk_count,
+        "lowRiskRecords": low_risk_count,
         "appointments": appointments_count,
-        "unreadAlerts": unread_alerts
+        "unreadAlerts": unread_alerts,
+        "reports": report_count,
+    }
+
+
+@router.get("/system-status")
+async def system_status(_: User = admin_required):
+    """Live operational totals used by the administrator status screen."""
+    request_started_at = time.perf_counter()
+    patient_count = await User.find(User.role == "user").count()
+    doctor_count = await User.find(User.role == "doctor").count()
+    report_count = await Report.count()
+    feedback_count = await Feedback.count()
+    appointment_count = await Appointment.count()
+    pending_count = await Appointment.find(Appointment.status == "pending").count()
+    high_risk_count = await PregnancyRecord.find(PregnancyRecord.risk_level == "High").count()
+    medium_risk_count = await PregnancyRecord.find(PregnancyRecord.risk_level == "Medium").count()
+    low_risk_count = await PregnancyRecord.find(PregnancyRecord.risk_level == "Low").count()
+
+    alerts = []
+    if doctor_count == 0:
+        alerts.append({"type": "critical", "title": "No Doctors Available", "message": "No doctor accounts are available to serve patients."})
+    if patient_count == 0:
+        alerts.append({"type": "info", "title": "No Patients Registered", "message": "No patient accounts have been created yet."})
+    if pending_count:
+        alerts.append({"type": "warning", "title": "Pending Appointments", "message": f"{pending_count} appointment request(s) need a doctor's response."})
+    if high_risk_count:
+        alerts.append({"type": "warning", "title": "High-risk Assessments", "message": f"{high_risk_count} high-risk assessment(s) require clinical follow-up."})
+
+    return {
+        "totalUsers": patient_count,
+        "totalDoctors": doctor_count,
+        "totalReports": report_count,
+        "totalFeedbacks": feedback_count,
+        "activeUsers": patient_count,
+        "totalAppointments": appointment_count,
+        "pendingAppointments": pending_count,
+        "highRiskRecords": high_risk_count,
+        "mediumRiskRecords": medium_risk_count,
+        "lowRiskRecords": low_risk_count,
+        "apiStatus": "operational",
+        "databaseStatus": "connected",
+        "uptimeSeconds": int(time.monotonic() - SERVER_STARTED_AT),
+        "queryTimeMs": round((time.perf_counter() - request_started_at) * 1000, 1),
+        "alerts": alerts,
     }
 
 
@@ -203,12 +256,22 @@ async def get_all_doctors(
                     if profile
                     else "Not uploaded"
                 ),
+                "address": profile.address if profile else None,
+                "area": profile.area if profile else None,
+                "city": profile.city if profile else None,
+                "state": profile.state if profile else None,
+                "pincode": profile.pincode if profile else None,
+                "country": profile.country if profile else None,
+                "latitude": profile.latitude if profile else None,
+                "longitude": profile.longitude if profile else None,
 
                 "license_number": (
                     profile.license_number
                     if profile
                     else None
                 ),
+                "license_image": profile.license_image if profile else None,
+                "hospital_id_image": profile.hospital_id_image if profile else None,
 
                 "verification_status": (
                     profile.verification_status
@@ -291,10 +354,20 @@ async def get_pending_doctors(
                 "hospital": (
                     profile.hospital
                 ),
+                "address": profile.address,
+                "area": profile.area,
+                "city": profile.city,
+                "state": profile.state,
+                "pincode": profile.pincode,
+                "country": profile.country,
+                "latitude": profile.latitude,
+                "longitude": profile.longitude,
 
                 "license_number": (
                     profile.license_number
                 ),
+                "license_image": profile.license_image,
+                "hospital_id_image": profile.hospital_id_image,
 
                 "verification_status": (
                     profile.verification_status

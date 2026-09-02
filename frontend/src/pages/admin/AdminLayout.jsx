@@ -15,22 +15,25 @@ import {
   Bell,
   AlertTriangle,
   CheckCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import bg from "../../assets/images/bg.png";
+import api from "../../services/api";
 
 const AdminLayout = ({ children, activeTab: propActiveTab }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [admin, setAdmin] = useState(null);
   const [activeTab, setActiveTab] = useState(propActiveTab || "dashboard");
-  const [onlineUsers, setOnlineUsers] = useState(0);
-  const [onlineDoctors, setOnlineDoctors] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalDoctors: 0,
     totalReports: 0,
     totalFeedbacks: 0,
   });
+  const [statsState, setStatsState] = useState("loading");
 
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -47,56 +50,26 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
     loadStats();
   }, [location]);
 
-  const loadStats = () => {
-    const allUsers = JSON.parse(localStorage.getItem("users")) || [];
-    const doctors = allUsers.filter(u => u.role === "doctor");
-    
-    let allAppointments = [];
-    const possibleKeys = ['appointments', 'doctorAppointmentRequests', 'appointmentRequests'];
-    for (const key of possibleKeys) {
-      const data = JSON.parse(localStorage.getItem(key));
-      if (data && Array.isArray(data) && data.length > 0) {
-        allAppointments = data;
-        break;
-      }
-    }
-
-    const feedbackList = JSON.parse(localStorage.getItem("feedbacks")) || [];
-    
-    setStats({
-      totalUsers: allUsers.length,
-      totalDoctors: doctors.length,
-      totalReports: allAppointments.length,
-      totalFeedbacks: feedbackList.length,
-    });
-  };
-
-  // Track online users
   useEffect(() => {
-    const trackOnlineStatus = () => {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      const now = Date.now();
-      const onlineThreshold = 5 * 60 * 1000;
-
-      const online = users.filter(u => {
-        const lastActivity = u.lastActivity || 0;
-        return now - lastActivity < onlineThreshold;
-      });
-
-      const onlineUsersList = online.filter(u => u.role !== "doctor");
-      const onlineDoctorsList = online.filter(u => u.role === "doctor");
-
-      setOnlineUsers(onlineUsersList.length);
-      setOnlineDoctors(onlineDoctorsList.length);
-    };
-
-    trackOnlineStatus();
-    const interval = setInterval(trackOnlineStatus, 10000);
-    return () => clearInterval(interval);
+    const refreshId = window.setInterval(loadStats, 30_000);
+    return () => window.clearInterval(refreshId);
   }, []);
+
+  const loadStats = async () => {
+    try {
+      const response = await api.get("/admin/system-status");
+      setStats(response.data);
+      setStatsState("ready");
+    } catch (error) {
+      console.error("Admin stats unavailable", error);
+      setStatsState("unavailable");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
     navigate("/admin-login");
   };
 
@@ -124,8 +97,10 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse z-0" style={{ animationDelay: "2s" }}></div>
       <div className="fixed top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse z-0" style={{ animationDelay: "1s" }}></div>
 
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle admin navigation" className="fixed left-4 top-4 z-[70] rounded-xl bg-white p-3 text-pink-600 shadow-lg lg:hidden">{sidebarOpen ? <X /> : <Menu />}</button>
+      {sidebarOpen && <button onClick={() => setSidebarOpen(false)} aria-label="Close admin navigation" className="fixed inset-0 z-[45] bg-slate-900/30 lg:hidden" />}
       {/* SIDEBAR */}
-      <div className="fixed left-0 top-0 h-screen w-72 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 flex flex-col z-50 overflow-y-auto">
+      <div id="admin-shared-sidebar" className={`fixed left-0 top-0 h-screen w-72 bg-white/95 backdrop-blur-2xl border-r border-pink-100/50 flex flex-col z-50 overflow-y-auto transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-5 border-b border-pink-100/50 flex-shrink-0">
           <Link to="/admin-dashboard" className="block">
             <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
@@ -143,15 +118,15 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
           </div>
         </div>
 
-        {/* Online Users Counter */}
+        {/* Live database totals */}
         <div className="px-4 py-2 border-b border-pink-100/50 bg-pink-50/30 flex-shrink-0">
           <div className="flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-gray-600">Online: {onlineUsers + onlineDoctors}</span>
+              <span className="text-gray-600">Live records</span>
             </span>
             <span className="text-gray-500">
-              👤 {onlineUsers} users | 👨‍⚕️ {onlineDoctors} doctors
+              👤 {stats.totalUsers} users | 👨‍⚕️ {stats.totalDoctors} doctors
             </span>
           </div>
         </div>
@@ -162,7 +137,7 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
             <Link
               key={item.id}
               to={item.path}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 text-sm ${
                 activeTab === item.id
                   ? "bg-gradient-to-r from-pink-500 to-sky-400 text-white shadow-lg"
@@ -193,8 +168,8 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 ml-72 relative z-10">
-        <div className="p-6 min-h-screen overflow-y-auto">
+      <div className="flex-1 relative z-10 lg:ml-72">
+        <div className="min-h-screen p-4 pt-20 sm:p-6 lg:pt-6">
           {children}
         </div>
       </div>

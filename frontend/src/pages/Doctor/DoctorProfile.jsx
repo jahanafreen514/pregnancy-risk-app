@@ -33,32 +33,34 @@ const DoctorProfile = () => {
   const [formData, setFormData] = useState({});
   const [activeTab, setActiveTab] = useState("profile");
 
-  useEffect(() => {
+  const loadProfile = async () => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     if (!currentUser || currentUser.role !== "doctor") {
       navigate("/doctor-login");
       return;
     }
-    setDoctor(currentUser);
-    setFormData(currentUser);
-    setLoading(false);
-  }, []);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/doctors/me/profile", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } });
+      const saved = response.ok ? await response.json() : currentUser;
+      localStorage.setItem("currentUser", JSON.stringify(saved));
+      setDoctor(saved); setFormData(saved);
+    } catch { setDoctor(currentUser); setFormData(currentUser); }
+    finally { setLoading(false); }
+  };
 
-  const handleSave = () => {
-    // Update in localStorage
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const updatedUsers = users.map(u =>
-      u.id === doctor.id ? { ...u, ...formData } : u
-    );
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-    
-    // Update current user
-    const updatedDoctor = { ...doctor, ...formData };
-    localStorage.setItem("currentUser", JSON.stringify(updatedDoctor));
-    setDoctor(updatedDoctor);
-    setIsEditing(false);
-    
-    alert("Profile updated successfully!");
+  useEffect(() => { loadProfile(); }, [navigate]);
+
+  const handleSave = async () => {
+    try {
+      const payload = { name: formData.name, phone: formData.phone, specialization: formData.specialization, hospital: formData.hospital };
+      const response = await fetch("http://127.0.0.1:8000/api/doctors/me/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` }, body: JSON.stringify(payload) });
+      const saved = await response.json();
+      if (!response.ok) throw new Error(saved.detail || "Unable to save profile");
+      localStorage.setItem("currentUser", JSON.stringify(saved));
+      setDoctor(saved); setFormData(saved); setIsEditing(false);
+      window.dispatchEvent(new Event("doctorProfileUpdated"));
+      alert("Profile updated across GlowCare.");
+    } catch (error) { alert(error.message || "Unable to save profile"); }
   };
 
   if (loading) {

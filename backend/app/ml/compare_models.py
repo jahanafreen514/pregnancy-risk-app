@@ -13,7 +13,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 from xgboost import XGBClassifier
 
-from lightgbm import LGBMClassifier
 from sklearn.preprocessing import LabelEncoder
 
 encoder = LabelEncoder()
@@ -24,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 csv_file = os.path.join(
     BASE_DIR,
     "dataset",
-    "pregnancy_data.csv"
+    "pregnancy_data_enhanced.csv"
 )
 
 df = pd.read_csv(csv_file)
@@ -69,10 +68,7 @@ DecisionTreeClassifier(),
 RandomForestClassifier(),
 
 "XGBoost":
-XGBClassifier(eval_metric="mlogloss"),
-
-"LightGBM":
-LGBMClassifier()
+XGBClassifier(eval_metric="mlogloss")
 
 }
 

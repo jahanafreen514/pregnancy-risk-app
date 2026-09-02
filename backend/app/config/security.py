@@ -2,13 +2,9 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from fastapi.security import OAuth2PasswordBearer
+from app.config.settings import get_settings
 
-SECRET_KEY = "GlowCare@2026SecureKey"
 ALGORITHM = "HS256"
-
-# Access token: short lifetime
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
 
 # Refresh token: long lifetime
 
@@ -39,7 +35,10 @@ def create_access_token(data: dict):
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        # Keep the token lifetime in one place (.env / Settings).  Previously
+        # this was hard-coded to 15 minutes even though the configured value
+        # is 1440 minutes, which caused valid sessions to fail predictions.
+        minutes=get_settings().access_token_expire_minutes
     )
 
     to_encode.update({
@@ -49,7 +48,7 @@ def create_access_token(data: dict):
 
     return jwt.encode(
         to_encode,
-        SECRET_KEY,
+        get_settings().secret_key,
         algorithm=ALGORITHM
     )
 
@@ -67,7 +66,7 @@ def create_refresh_token(data: dict):
 
     return jwt.encode(
         to_encode,
-        SECRET_KEY,
+        get_settings().secret_key,
         algorithm=ALGORITHM
     )
 

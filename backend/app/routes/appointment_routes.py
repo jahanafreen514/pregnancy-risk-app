@@ -13,6 +13,7 @@ from app.schemas.appointment_schema import (
     AppointmentUpdate,
     AppointmentOut,
 )
+from app.services.notification_service import notify_user
 
 # ==================================================
 # CONVERT MONGODB OBJECTID TO STRING
@@ -23,6 +24,7 @@ async def appointment_to_response(appointment):
     patient = await User.get(
         appointment.patient_id
     )
+    doctor = await User.get(appointment.doctor_id)
 
 
     return {
@@ -38,6 +40,9 @@ async def appointment_to_response(appointment):
         "patient_email":
             patient.email if patient else "N/A",
 
+        "doctor_name": doctor.name if doctor else "N/A",
+        "doctor_email": doctor.email if doctor else "N/A",
+
         "scheduled_for":
             appointment.scheduled_for,
 
@@ -46,6 +51,8 @@ async def appointment_to_response(appointment):
 
         "reason":
             appointment.reason,
+
+        "appointment_type": appointment.appointment_type,
     }
 
 # ==================================================
@@ -153,14 +160,90 @@ async def book_appointment(
         doctor_id=str(doctor.id),
         scheduled_for=payload.scheduled_for,
         reason=payload.reason,
+        appointment_type=payload.appointment_type,
         status="pending",
     )
 
     # Save appointment
     await appointment.insert()
+    # Keep the care-team relationship in sync so risk reports reach this doctor.
+    user.selected_doctor = str(doctor.id)
+    await user.save()
+
+    await notify_user(
+        str(doctor.id),
+        "New appointment request",
+        f"{user.name} requested an appointment for {payload.scheduled_for.isoformat()}.",
+        "appointment",
+    )
 
     # Convert ObjectId to string
     return await appointment_to_response(appointment)
+
+
+@router.post("/{appointment_id}/call-request")
+async def request_online_call(appointment_id: str, user: User = Depends(get_current_user)):
+    """Notify the other participant before WebRTC negotiation starts."""
+    if not ObjectId.is_valid(appointment_id):
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    appointment = await Appointment.get(appointment_id)
+    if not appointment or appointment.status != "accepted" or appointment.appointment_type != "online":
+        raise HTTPException(status_code=400, detail="This appointment is not ready for an online call")
+    if str(user.id) not in {appointment.patient_id, appointment.doctor_id}:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    recipient = appointment.doctor_id if str(user.id) == appointment.patient_id else appointment.patient_id
+    appointment.call_status = "ringing"
+    appointment.call_initiator_id = str(user.id)
+    appointment.call_ringing_at = datetime.now(timezone.utc)
+    appointment.call_started_at = None
+    appointment.call_ended_at = None
+    await appointment.save()
+    await notify_user(
+        recipient,
+        "Incoming video consultation",
+        f"{user.name} is calling for your accepted online appointment.",
+        "call_request",
+        {"appointment_id": appointment_id, "caller_name": user.name, "caller_id": str(user.id)},
+    )
+    return {"message": "Call request sent.", "call_status": appointment.call_status}
+
+
+@router.post("/{appointment_id}/call-reject")
+async def reject_online_call(appointment_id: str, user: User = Depends(get_current_user)):
+    if not ObjectId.is_valid(appointment_id):
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    appointment = await Appointment.get(appointment_id)
+    if not appointment or str(user.id) not in {appointment.patient_id, appointment.doctor_id}:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    if appointment.call_status != "ringing" or appointment.call_initiator_id == str(user.id):
+        raise HTTPException(status_code=400, detail="There is no incoming call to reject")
+    appointment.call_status = "rejected"
+    appointment.call_ended_at = datetime.now(timezone.utc)
+    await appointment.save()
+    await notify_user(appointment.call_initiator_id, "Call declined", f"{user.name} declined the online consultation call.", "call_rejected", {"appointment_id": appointment_id})
+    return {"message": "Call declined."}
+
+
+@router.get("/{appointment_id}/contact")
+async def appointment_contact(appointment_id: str, user: User = Depends(get_current_user)):
+    """Share a participant's WhatsApp contact only for an accepted appointment."""
+    if not ObjectId.is_valid(appointment_id):
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    appointment = await Appointment.get(appointment_id)
+    if not appointment or appointment.status != "accepted":
+        raise HTTPException(status_code=404, detail="Accepted appointment not found")
+    if str(user.id) not in {appointment.patient_id, appointment.doctor_id}:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    counterpart_id = appointment.doctor_id if str(user.id) == appointment.patient_id else appointment.patient_id
+    counterpart = await User.get(counterpart_id)
+    if not counterpart or not counterpart.phone:
+        raise HTTPException(status_code=404, detail="The other participant has not added a phone number")
+    return {
+        "name": counterpart.name,
+        "role": counterpart.role,
+        "phone": counterpart.phone,
+        "country_code": counterpart.country_code or "",
+    }
 
 
 # ==================================================
@@ -183,10 +266,7 @@ async def list_appointments(
             -Appointment.scheduled_for
         ).to_list()
 
-        return [
-            appointment_to_response(appointment)
-            for appointment in appointments
-        ]
+        return [await appointment_to_response(appointment) for appointment in appointments]
 
     # User/Patient can see only own appointments
     if user.role in ["user", "patient"]:
@@ -197,10 +277,7 @@ async def list_appointments(
             -Appointment.scheduled_for
         ).to_list()
 
-        return [
-            appointment_to_response(appointment)
-            for appointment in appointments
-        ]
+        return [await appointment_to_response(appointment) for appointment in appointments]
 
     # Doctor can see only own appointment requests
     if user.role == "doctor":
@@ -211,10 +288,7 @@ async def list_appointments(
             -Appointment.scheduled_for
         ).to_list()
 
-        return [
-            appointment_to_response(appointment)
-            for appointment in appointments
-        ]
+        return [await appointment_to_response(appointment) for appointment in appointments]
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -318,14 +392,10 @@ async def update_appointment(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Appointment not found",
         )
-    print("LOGIN USER ID:", user.id)
-    print("LOGIN ROLE:", user.role)
-    print("APPOINTMENT DOCTOR ID:", appointment.doctor_id)
-    # Only assigned doctor or admin can update
-    if (
-        user.role != "admin"
-        and appointment.doctor_id != str(user.id)
-    ):
+    # Doctors can accept/reject/complete their own appointments; patients can cancel theirs.
+    is_assigned_doctor = user.role == "doctor" and appointment.doctor_id == str(user.id)
+    is_assigned_patient = user.role in {"user", "patient"} and appointment.patient_id == str(user.id)
+    if user.role != "admin" and not is_assigned_doctor and not is_assigned_patient:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not allowed to update this appointment",
@@ -339,7 +409,6 @@ async def update_appointment(
         "completed",
         "cancelled",
     }
-    print("STATUS RECEIVED:", payload.status)
     new_status = payload.status.lower().strip()
 
     if new_status not in allowed_statuses:
@@ -352,11 +421,24 @@ async def update_appointment(
             ),
         )
 
+    if is_assigned_patient and new_status != "cancelled":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Patients can only cancel their appointments")
+    if is_assigned_doctor and new_status in {"pending", "cancelled"}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Doctors can accept, reject, or complete appointments")
+
     # Update status
     appointment.status = new_status
 
     # Save changes
     await appointment.save()
+
+    recipient_id = appointment.patient_id if user.role in {"doctor", "admin"} else appointment.doctor_id
+    await notify_user(
+        recipient_id,
+        "Appointment updated",
+        f"Your appointment scheduled for {appointment.scheduled_for.isoformat()} is now {new_status}.",
+        "appointment",
+    )
 
     # Convert ObjectId to string
     return await appointment_to_response(appointment)

@@ -143,8 +143,8 @@ function DoctorsList() {
               </div>
               <div className="bg-white/85 backdrop-blur-xl rounded-2xl shadow-sm border border-white p-4 hover:scale-105 transition duration-500">
                 <FaChartLine className="text-sky-500 text-xl mb-1" />
-                <h4 className="text-xl font-bold text-gray-800">98%</h4>
-                <p className="text-[11px] text-gray-500 font-medium">Accuracy</p>
+                <h4 className="text-xl font-bold text-gray-800">24</h4>
+                <p className="text-[11px] text-gray-500 font-medium">Model features</p>
               </div>
               <div className="bg-white/85 backdrop-blur-xl rounded-2xl shadow-sm border border-white p-4 hover:scale-105 transition duration-500">
                 <FaUserMd className="text-pink-500 text-xl mb-1" />

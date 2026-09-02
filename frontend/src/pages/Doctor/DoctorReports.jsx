@@ -34,6 +34,7 @@ import {
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
+import api from "../../services/api";
 
 const DoctorReports = () => {
   const navigate = useNavigate();
@@ -71,8 +72,55 @@ const DoctorReports = () => {
     loadReports();
   }, []);
 
-  const loadReports = () => {
+  const loadReports = async () => {
     setLoading(true);
+
+    // The report is stored on the backend when the patient completes an
+    // assessment.  Read that shared source so a doctor's login on any device
+    // sees it, rather than relying on this browser's localStorage.
+    try {
+      const { data } = await api.get("/reports");
+      const formattedReports = data.map((item) => ({
+        id: item.id,
+        patientId: item.patient_id || "",
+        patient: item.patient_name || "Patient",
+        email: item.patient_email || "",
+        risk: item.risk_level || "Low",
+        score: Number(item.risk_score || 0),
+        confidence: Number(item.confidence || 0),
+        symptoms: item.symptoms || [],
+        riskFactors: item.risk_factors || [],
+        vitals: item.vitals || {},
+        heartRate: item.vitals?.heartRate || "-",
+        updatedAt: item.created_at || new Date().toISOString(),
+        doctorNotes: item.doctor_notes || "",
+        status: item.status || "New",
+      }));
+      setReports(formattedReports);
+      setFilteredReports(formattedReports);
+      setReportStats({
+        total: formattedReports.length,
+        high: formattedReports.filter((item) => item.risk === "High").length,
+        medium: formattedReports.filter((item) => item.risk === "Medium").length,
+        low: formattedReports.filter((item) => item.risk === "Low").length,
+      });
+      setPatients(Array.from(new Map(formattedReports.map((item) => [
+        item.email || item.id,
+        {
+          id: item.email || item.id,
+          name: item.patient,
+          email: item.email,
+          appointments: 0,
+          status: item.risk === "High" ? "Critical" : "Stable",
+          latestRisk: item.risk,
+          reportCount: formattedReports.filter((report) => report.email === item.email).length,
+        },
+      ])).values()));
+      setLoading(false);
+      return;
+    } catch (apiError) {
+      console.warn("Backend reports unavailable; using local browser history.", apiError);
+    }
 
     try {
       const allPatientReports = JSON.parse(localStorage.getItem("allPatientReports")) || [];
@@ -223,6 +271,7 @@ const createPrescription = () => {
   localStorage.setItem(
     "selectedPrescriptionPatient",
     JSON.stringify({
+      patientId: selectedReport.patientId,
       patient: selectedReport.patient,
       email: selectedReport.email,
       risk: selectedReport.risk,
@@ -804,7 +853,7 @@ localStorage.setItem(
 "selectedPatient",
 JSON.stringify({
 
-id:selectedReport.email,
+id:selectedReport.patientId,
 name:selectedReport.patient,
 email:selectedReport.email
 

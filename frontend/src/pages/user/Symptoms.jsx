@@ -22,6 +22,7 @@ import {
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
+import { refreshAccessToken } from "../../services/authService";
 
 
 const symptomsList = [
@@ -31,6 +32,7 @@ const symptomsList = [
   "Swelling",
   "Blurred Vision",
   "Bleeding",
+  "Abdominal Pain",
   "Chest Pain",
   "Dizziness",
   "Fever",
@@ -73,6 +75,13 @@ function Symptoms() {
     babyWeight: "",
     babyHeartRate: "",
     cervicalLength: "",
+
+    // Required model features. Keep them blank until the patient answers;
+    // never silently substitute "0" for clinical history.
+    previousComplications: "",
+    preexistingDiabetes: "",
+    gestationalDiabetes: "",
+    mentalHealth: "",
 
 
     symptoms: [],
@@ -201,6 +210,20 @@ function Symptoms() {
       setIsLoading(true);
 
 
+    const requiredFields = [
+      ["Age", form.age], ["Pregnancy week", form.week], ["Weight", form.weight],
+      ["Height", form.height], ["Systolic BP", form.bpSystolic],
+      ["Diastolic BP", form.bpDiastolic], ["Heart rate", form.heartRate],
+      ["Blood sugar", form.sugar], ["Temperature", form.temperature],
+      ["Baby count", form.babyCount], ["Baby weight", form.babyWeight],
+      ["Baby heart rate", form.babyHeartRate], ["Cervical length", form.cervicalLength],
+      ["Previous complications", form.previousComplications],
+      ["Pre-existing diabetes", form.preexistingDiabetes],
+      ["Gestational diabetes", form.gestationalDiabetes], ["Mental health support", form.mentalHealth],
+    ];
+    const missing = requiredFields.find(([, value]) => value === "" || value === null || value === undefined);
+    if (missing) throw new Error(`Please complete: ${missing[0]}.`);
+
     const heightInMeters = Number(form.height) / 100;
 
 const bmi =
@@ -211,7 +234,8 @@ const bmi =
           (heightInMeters * heightInMeters)
         ).toFixed(1)
       )
-    : 24;
+    : NaN;
+      if (!Number.isFinite(bmi)) throw new Error("Enter a valid height and weight to calculate BMI.");
       const payload = {
 
   age: Number(form.age),
@@ -227,10 +251,10 @@ const bmi =
   heart_rate: Number(form.heartRate),
 
 
-  previous_complications: 0,
-  preexisting_diabetes: 0,
-  gestational_diabetes: 0,
-  mental_health: 0,
+  previous_complications: Number(form.previousComplications),
+  preexisting_diabetes: Number(form.preexistingDiabetes),
+  gestational_diabetes: Number(form.gestationalDiabetes),
+  mental_health: Number(form.mentalHealth),
 
 
   pregnancy_week: Number(form.week),
@@ -284,33 +308,41 @@ const bmi =
 
 
 
-      const response = await fetch(
-
+      const predictionRequest = (token) => fetch(
         "http://127.0.0.1:8000/api/prediction/predict",
-
         {
-
-          method:"POST",
-
-
-          headers:{
-  "Content-Type":"application/json",
-  "Authorization":
-    `Bearer ${localStorage.getItem("token")}`
-},
-
-          body:
-          JSON.stringify(payload)
-
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
         }
-
       );
+
+      let response = await predictionRequest(localStorage.getItem("token"));
+
+      // Access tokens may expire while the form is open.  Refresh once and
+      // retry the same prediction instead of showing an avoidable error.
+      if (response.status === 401) {
+        const refreshedToken = await refreshAccessToken();
+        if (refreshedToken) {
+          response = await predictionRequest(refreshedToken);
+        }
+      }
 
 
 
 
       const result =
       await response.json();
+
+      if (!response.ok || typeof result.risk_score !== "number") {
+        const detail = Array.isArray(result.detail)
+          ? result.detail.map(item => item.msg).join(", ")
+          : result.detail || "Prediction could not be completed. Please check all required values.";
+        throw new Error(detail);
+      }
 
     console.log(
   "422 DETAIL:",
@@ -378,6 +410,7 @@ localStorage.setItem(
         "Prediction Error:",
         error
       );
+      alert(error.message || "Prediction could not be completed. Please try again.");
 
 
     }
@@ -432,145 +465,40 @@ localStorage.setItem(
 
 
 
-      {/* SIDEBAR */}
-
-      <div
-        className="
-        fixed left-0 top-0 z-40 
-        w-64 h-screen
-        bg-white/80 backdrop-blur-2xl
-        border-r border-pink-100/50
-        p-5 flex flex-col shadow-xl
-        "
-      >
-
-
-        <Link to="/dashboard">
-
-          <h1 className="
-          text-2xl font-bold text-pink-500
-          ">
-            GlowCare
-          </h1>
-
-
-          <p className="
-          text-sm text-gray-500
-          ">
-            Maternal Health System
-          </p>
-
-
+      <div className="fixed left-0 top-0 z-40 w-64 bg-white/80 backdrop-blur-2xl border-r border-pink-100/50 p-5 h-screen flex flex-col">
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>
+          <p className="text-sm text-gray-500">Maternal Health System</p>
         </Link>
 
-
-
-
-        <div className="
-        mt-8 space-y-2 flex-1 overflow-y-auto
-        ">
-
-
-          <NavItem
-            label="Dashboard"
-            icon={<FaHeartbeat/>}
-            to="/dashboard"
-          />
-
-
-          <NavItem
-            label="Reports"
-            icon={<FaFileMedical/>}
-            to="/reports"
-          />
-
-
-          <NavItem
-            label="Pregnancy Toolkit"
-            icon={<FaBaby/>}
-            to="/toolkit"
-          />
-
-
-          <NavItem
-            label="Symptoms"
-            icon={<FaNotesMedical/>}
-            to="/symptoms"
-            active
-          />
-
-
-          <NavItem
-            label="Suggestions"
-            icon={<FaLightbulb/>}
-            to="/suggestions"
-          />
-
-
-          <NavItem
-            label="Prediction"
-            icon={<FaChartLine/>}
-            to="/prediction"
-          />
-
-
-          <NavItem
-            label="Alerts"
-            icon={<FaBell/>}
-            to="/alerts"
-          />
-
-
-          <NavItem
-            label="Appointments"
-            icon={<FaCalendarAlt/>}
-            to="/appointment"
-          />
-
-
-          <NavItem
-            label="Profile"
-            icon={<FaUser/>}
-            to="/profile"
-          />
-
-
-
+        <div className="mt-8 space-y-2 flex-1 overflow-y-auto">
+          <NavItem label="Dashboard" icon={<FaHeartbeat />} to="/dashboard"  />
+          <NavItem label="Reports" icon={<FaFileMedical />} to="/reports" />
+          <NavItem label="Prescriptions" icon={<FaFileMedical />} to="/prescriptions" />
+          <NavItem label="Pregnancy Toolkit" icon={<FaBaby />} to="/toolkit" />
+          <NavItem label="Symptoms" icon={<FaNotesMedical />} to="/symptoms" active />
+          <NavItem label="Suggestions" icon={<FaLightbulb />} to="/suggestions" />
+          <NavItem label="Prediction" icon={<FaChartLine />} to="/prediction" />
+          <NavItem label="Alerts" icon={<FaBell />} to="/alerts" />
+          <NavItem label="Appointments" icon={<FaCalendarAlt />} to="/appointment" />
+          <NavItem label="Reminders" icon={<FaBell />} to="/reminders" />
+          <NavItem label="Feedback" icon={<FaLightbulb />} to="/share-feedback" />
+          <NavItem label="Profile" icon={<FaUser />} to="/profile" />
+          <NavItem label="Settings" icon={<FaShieldAlt />} to="/settings" />
         </div>
 
-
-
-
-
-        <button
-
-          onClick={()=>{
-
-            localStorage.removeItem(
-              "currentUser"
-            );
-
-            window.location.href="/login";
-
-          }}
-
-          className="
-          bg-pink-100 text-pink-600
-          px-5 py-2 rounded-xl
-          font-semibold
-          hover:bg-pink-200
-          "
-        >
-
-          Logout
-
-        </button>
-
-
-
+        <div className="pt-4 border-t border-pink-100/50">
+          <button
+            onClick={() => {
+              localStorage.removeItem("currentUser");
+              window.location.href = "/login";
+            }}
+            className="w-full bg-pink-100 text-pink-600 px-5 py-2 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-semibold"
+          >
+            Logout
+          </button>
+        </div>
       </div>
-
-
 
 
 
@@ -928,6 +856,17 @@ localStorage.setItem(
 
         {/* SYMPTOMS */}
 
+        <div className="bg-white/80 backdrop-blur-2xl rounded-3xl p-6 shadow-lg mb-6">
+          <h3 className="text-xl font-bold mb-2 flex gap-2 items-center"><FaClipboardList className="text-pink-500" />Health history</h3>
+          <p className="text-sm text-gray-500 mb-4">These answers are required by the prediction model. Select Yes only when applicable.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <YesNoField label="Previous pregnancy complications" value={form.previousComplications} onChange={(value) => updateField("previousComplications", value)} />
+            <YesNoField label="Pre-existing diabetes" value={form.preexistingDiabetes} onChange={(value) => updateField("preexistingDiabetes", value)} />
+            <YesNoField label="Gestational diabetes" value={form.gestationalDiabetes} onChange={(value) => updateField("gestationalDiabetes", value)} />
+            <YesNoField label="Receiving mental-health support" value={form.mentalHealth} onChange={(value) => updateField("mentalHealth", value)} />
+          </div>
+        </div>
+
         <div className="
         bg-white/80 backdrop-blur-2xl
         rounded-3xl p-6 shadow-lg
@@ -1121,6 +1060,11 @@ localStorage.setItem(
                 babyWeight:"",
                 babyHeartRate:"",
                 cervicalLength:"",
+
+                previousComplications:"",
+                preexistingDiabetes:"",
+                gestationalDiabetes:"",
+                mentalHealth:"",
 
                 symptoms:[]
 
@@ -1321,6 +1265,14 @@ const InputField = ({
 
       onChange={onChange}
 
+      onKeyDown={(event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        const fields = Array.from(document.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'));
+        const next = fields[fields.indexOf(event.currentTarget) + 1];
+        next?.focus();
+      }}
+
       placeholder={placeholder}
 
       className="
@@ -1343,6 +1295,17 @@ const InputField = ({
   </div>
 
 
+);
+
+const YesNoField = ({ label, value, onChange }) => (
+  <div className="space-y-1.5">
+    <label className="text-sm font-medium text-gray-700">{label}</label>
+    <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-pink-100 bg-white/90 px-4 py-3 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100">
+      <option value="">Select</option>
+      <option value="0">No</option>
+      <option value="1">Yes</option>
+    </select>
+  </div>
 );
 
 

@@ -1,6 +1,7 @@
 // AdminFeedback.jsx
 import React, { useState, useEffect } from "react";
 import AdminLayout from "./AdminLayout";
+import { apiUrl } from "../../config/runtime";
 import {
   MessageSquare,
   Search,
@@ -14,17 +15,38 @@ const AdminFeedback = () => {
   const [filteredFeedbacks, setFilteredFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadFeedbacks();
   }, []);
 
-  const loadFeedbacks = () => {
+  const loadFeedbacks = async () => {
     setLoading(true);
-    const feedbackList = JSON.parse(localStorage.getItem("feedbacks")) || [];
-    setFeedbacks(feedbackList);
-    setFilteredFeedbacks(feedbackList);
-    setLoading(false);
+    setError("");
+    try {
+      const response = await fetch(apiUrl("/feedback"), {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!response.ok) throw new Error("Unable to load feedback");
+      const feedbackList = await response.json();
+      setFeedbacks(feedbackList.map(item => ({ ...item, userName: item.user_name, date: new Date(item.created_at).toLocaleString() })));
+    } catch (error) {
+      console.error(error);
+      setError(error.message || "Unable to load feedback. Sign in again as admin and retry.");
+      setFeedbacks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteFeedback = async (id) => {
+    if (!window.confirm("Delete this feedback?")) return;
+    const response = await fetch(apiUrl(`/feedback/${id}`), {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    if (response.ok) loadFeedbacks();
   };
 
   useEffect(() => {
@@ -85,6 +107,7 @@ const AdminFeedback = () => {
             />
           </div>
         </div>
+        {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
         <div className="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-xl border border-white/70 p-6">
           {loading ? (
@@ -93,8 +116,8 @@ const AdminFeedback = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredFeedbacks.map((feedback, index) => (
-                <div key={index} className="p-4 bg-pink-50/30 rounded-xl border border-pink-100/30 hover:bg-pink-50/50 transition-colors">
+              {filteredFeedbacks.map((feedback) => (
+                <div key={feedback.id} className="p-4 bg-pink-50/30 rounded-xl border border-pink-100/30 hover:bg-pink-50/50 transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm">
@@ -108,11 +131,12 @@ const AdminFeedback = () => {
                         </div>
                       </div>
                     </div>
-                    <button className="text-red-400 hover:text-red-600 transition-colors">
+                    <button onClick={() => deleteFeedback(feedback.id)} aria-label="Delete feedback" className="text-red-400 hover:text-red-600 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   <p className="mt-2 text-gray-700">{feedback.comment}</p>
+                  <p className="mt-1 text-xs font-medium text-sky-600">{feedback.sender_type || "user"} · {feedback.category || "general"}{feedback.consultation_id ? " · Consultation feedback" : ""}</p>
                   <p className="mt-1 text-xs text-gray-400">{feedback.date || new Date().toLocaleDateString()}</p>
                 </div>
               ))}

@@ -13,6 +13,8 @@ import {
   FileText,
   MessageSquare,
 } from "lucide-react";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import api from "../../services/api";
 
 const AdminSystemStatus = () => {
   const [loading, setLoading] = useState(true);
@@ -24,100 +26,37 @@ const AdminSystemStatus = () => {
   });
   const [alerts, setAlerts] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [error, setError] = useState("");
+  const volumeData = [
+    { name: "Patients", value: stats.totalUsers || 0 }, { name: "Doctors", value: stats.totalDoctors || 0 },
+    { name: "Reports", value: stats.totalReports || 0 }, { name: "Feedback", value: stats.totalFeedbacks || 0 },
+  ];
+  const appointmentData = [
+    { name: "Pending", value: stats.pendingAppointments || 0 }, { name: "Other", value: Math.max(0, (stats.totalAppointments || 0) - (stats.pendingAppointments || 0)) },
+  ];
+  const hasVolumeData = volumeData.some((item) => item.value > 0);
+  const hasAppointmentData = appointmentData.some((item) => item.value > 0);
 
   useEffect(() => {
     loadData();
+    const refreshId = window.setInterval(loadData, 30_000);
+    return () => window.clearInterval(refreshId);
   }, []);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
-    
-    // Load users
-    const allUsers = JSON.parse(localStorage.getItem("users")) || [];
-    const doctors = allUsers.filter(u => u.role === "doctor");
-    
-    // Load appointments
-    let allAppointments = [];
-    const possibleKeys = ['appointments', 'doctorAppointmentRequests', 'appointmentRequests'];
-    for (const key of possibleKeys) {
-      const data = JSON.parse(localStorage.getItem(key));
-      if (data && Array.isArray(data) && data.length > 0) {
-        allAppointments = data;
-        break;
-      }
-    }
-
-    // Load feedbacks
-    const feedbackList = JSON.parse(localStorage.getItem("feedbacks")) || [];
-    
-    // Load reports from risk data
-    const reportList = [];
-    allUsers.forEach(user => {
-      const riskData = JSON.parse(localStorage.getItem(`riskData_${user.email}`));
-      if (riskData) {
-        reportList.push(riskData);
-      }
-    });
-    
-    setStats({
-      totalUsers: allUsers.length,
-      totalDoctors: doctors.length,
-      totalReports: reportList.length || allAppointments.length,
-      totalFeedbacks: feedbackList.length,
-    });
-
-    // Generate system alerts
-    const alertList = [];
-    
-    // Check for critical issues
-    if (doctors.length === 0) {
-      alertList.push({
-        type: "critical",
-        title: "No Doctors Available",
-        message: "There are no doctors registered in the system. Please add doctors to serve patients.",
-      });
-    }
-    
-    if (allUsers.length === 0) {
-      alertList.push({
-        type: "critical",
-        title: "No Users Registered",
-        message: "There are no users registered in the system.",
-      });
-    }
-    
-    // Check for high risk cases
-    const highRiskCases = reportList.filter(r => r.risk?.toLowerCase() === "high").length;
-    if (highRiskCases > 5) {
-      alertList.push({
-        type: "warning",
-        title: "High Risk Cases Detected",
-        message: `${highRiskCases} patients are at high risk. Immediate attention needed.`,
-      });
-    }
-    
-    // Check for pending appointments
-    const pendingAppointments = allAppointments.filter(a => a.status?.toLowerCase() === "pending").length;
-    if (pendingAppointments > 10) {
-      alertList.push({
-        type: "warning",
-        title: "Appointment Backlog",
-        message: `${pendingAppointments} appointments are pending approval.`,
-      });
-    }
-    
-    // Performance check
-    if (allAppointments.length > 50) {
-      alertList.push({
-        type: "info",
-        title: "High Appointment Volume",
-        message: `System is handling ${allAppointments.length} appointments. Performance is normal.`,
-      });
-    }
-    
-    setAlerts(alertList);
-    setLastUpdated(new Date());
-    setLoading(false);
+    setError("");
+    try {
+      const response = await api.get("/admin/system-status");
+      const data = response.data;
+      setStats(data);
+      setAlerts(data.alerts || []);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error(error);
+      setError("Live system data is unavailable. Confirm that the backend is running and sign in again if your session expired.");
+      setAlerts([{ type: "critical", title: "Status unavailable", message: "The API could not be reached. Check that the backend is running." }]);
+    } finally { setLoading(false); }
   };
 
   return (
@@ -143,9 +82,9 @@ const AdminSystemStatus = () => {
               <RefreshCw className="w-4 h-4" />
               Refresh
             </button>
-            <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-xs text-green-700 font-medium">All Systems Operational</span>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${stats.apiStatus === "operational" ? "bg-green-50" : "bg-red-50"}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${stats.apiStatus === "operational" ? "bg-green-500" : "bg-red-500"}`}></span>
+              <span className={`text-xs font-medium ${stats.apiStatus === "operational" ? "text-green-700" : "text-red-700"}`}>{stats.apiStatus === "operational" ? "API Operational" : "API Unavailable"}</span>
             </div>
           </div>
         </div>
@@ -156,6 +95,7 @@ const AdminSystemStatus = () => {
           </div>
         ) : (
           <>
+            {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
             {/* System Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard 
@@ -193,21 +133,26 @@ const AdminSystemStatus = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-gray-500">Response Time</p>
-                  <p className="text-2xl font-bold text-green-600">120ms</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.queryTimeMs ?? "—"}ms</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-gray-500">Uptime</p>
-                  <p className="text-2xl font-bold text-green-600">99.9%</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.uptimeSeconds != null ? `${Math.floor(stats.uptimeSeconds / 60)}m` : "—"}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-gray-500">Error Rate</p>
-                  <p className="text-2xl font-bold text-green-600">0%</p>
+                  <p className="text-2xl font-bold text-green-600">Operational</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-gray-500">Active Users</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.totalUsers}</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.activeUsers ?? stats.totalUsers}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl"><h3 className="mb-4 font-bold text-gray-800">System data volume</h3>{hasVolumeData ? <ResponsiveContainer width="100%" height={250}><BarChart data={volumeData}><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#ec4899" /></BarChart></ResponsiveContainer> : <EmptyChart message="No users, doctors, reports, or feedback records yet." />}</div>
+              <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl"><h3 className="mb-4 text-center font-bold text-gray-800">Appointment workload</h3>{hasAppointmentData ? <ResponsiveContainer width="100%" height={250}><PieChart><Pie data={appointmentData} dataKey="value" nameKey="name" outerRadius={85} label>{appointmentData.map((item, index) => <Cell key={item.name} fill={index === 0 ? "#f59e0b" : "#38bdf8"} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer> : <EmptyChart message="No appointment records yet." />}</div>
             </div>
 
             {/* System Alerts */}
@@ -280,15 +225,15 @@ const AdminSystemStatus = () => {
                     <CheckCircle className="w-5 h-5 text-green-500" />
                     <span className="font-semibold text-green-700">Database</span>
                   </div>
-                  <p className="text-sm text-green-600">Connected</p>
-                  <p className="text-xs text-gray-400">{stats.totalUsers} records</p>
+                  <p className="text-sm text-green-600">{stats.databaseStatus || "Unknown"}</p>
+                  <p className="text-xs text-gray-400">Live connection</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4 text-center border border-green-200">
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <CheckCircle className="w-5 h-5 text-green-500" />
                     <span className="font-semibold text-green-700">Storage</span>
                   </div>
-                  <p className="text-sm text-green-600">Operational</p>
+                  <p className="text-sm text-green-600">Report records available</p>
                   <p className="text-xs text-gray-400">{stats.totalReports} files</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-4 text-center border border-green-200">
@@ -296,8 +241,8 @@ const AdminSystemStatus = () => {
                     <CheckCircle className="w-5 h-5 text-green-500" />
                     <span className="font-semibold text-green-700">API</span>
                   </div>
-                  <p className="text-sm text-green-600">Running</p>
-                  <p className="text-xs text-gray-400">{stats.totalUsers} requests</p>
+                  <p className="text-sm text-green-600">{stats.apiStatus || "Unknown"}</p>
+                  <p className="text-xs text-gray-400">Live service</p>
                 </div>
               </div>
             </div>
@@ -307,6 +252,8 @@ const AdminSystemStatus = () => {
     </AdminLayout>
   );
 };
+
+const EmptyChart = ({ message }) => <div className="flex h-[250px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">{message}</div>;
 
 // ===== METRIC CARD COMPONENT =====
 const MetricCard = ({ title, value, icon, color }) => {

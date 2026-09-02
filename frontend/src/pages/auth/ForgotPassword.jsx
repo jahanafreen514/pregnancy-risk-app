@@ -34,21 +34,22 @@ const ForgotPassword = () => {
     setIsLoading(true);
     setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (user) {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
       setOtpSent(true);
       setStep(2);
-      setSuccess("OTP sent to your email! Please check your inbox.");
-      // In real app, send OTP via email
-      // For demo, OTP is "123456"
-      console.log("OTP for demo: 123456");
+      setSuccess(data.message || "OTP sent. Please check your inbox.");
     } else {
-      setError("No account found with this email address.");
+      setError(data.detail || "Unable to send OTP.");
+    }
+    } catch {
+      setError("Unable to reach the server. Please try again shortly.");
     }
     setIsLoading(false);
   };
@@ -63,14 +64,18 @@ const ForgotPassword = () => {
     setIsLoading(true);
     setError("");
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Demo OTP is "123456"
-    if (otp === "123456") {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/auth/validate-reset-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Invalid OTP");
       setStep(3);
-      setSuccess("OTP verified! Please set your new password.");
-    } else {
-      setError("Invalid OTP. Please try again.");
+      setSuccess("OTP verified. Please set your new password.");
+    } catch (err) {
+      setError(err.message || "Invalid OTP. Please try again.");
     }
     setIsLoading(false);
   };
@@ -89,28 +94,38 @@ const ForgotPassword = () => {
     setIsLoading(true);
     setError("");
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    const updatedUsers = users.map(u => {
-      if (u.email.toLowerCase() === email.toLowerCase()) {
-        return { ...u, password: newPassword };
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp, new_password: newPassword }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.detail || "Could not reset the password.");
+      } else {
+        setSuccess("Password reset successfully! Redirecting to login...");
+        setTimeout(() => navigate("/login"), 2000);
       }
-      return u;
-    });
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-    setSuccess("Password reset successfully! Redirecting to login...");
-    setTimeout(() => {
-      navigate("/login");
-    }, 2000);
+    } catch {
+      setError("Unable to reach the server. Please try again shortly.");
+    }
     setIsLoading(false);
   };
 
   const resendOTP = async () => {
-    setOtpSent(true);
-    setSuccess("OTP resent to your email!");
-    // In real app, resend OTP
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/auth/forgot-password", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      setSuccess(response.ok ? (data.message || "OTP resent.") : (data.detail || "Unable to resend OTP."));
+    } catch {
+      setError("Unable to reach the server. Please try again shortly.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -241,7 +256,7 @@ const ForgotPassword = () => {
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-1.5">
-                    Demo OTP: 123456
+                    Check your registered email for the six-digit OTP.
                   </p>
                 </div>
 

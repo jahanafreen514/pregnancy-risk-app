@@ -11,12 +11,14 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+import { apiUrl } from "../../config/runtime";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
     loadUsers();
@@ -36,7 +38,7 @@ const AdminUsers = () => {
 
 
     const response = await fetch(
-      "http://127.0.0.1:8000/api/admin/users",
+      apiUrl("/admin/users"),
       {
         headers:{
           Authorization:`Bearer ${token}`,
@@ -102,8 +104,11 @@ const AdminUsers = () => {
         u.email?.toLowerCase().includes(search)
       );
     }
+    if (roleFilter !== "all") filtered = filtered.filter(user => user.role === roleFilter);
     setFilteredUsers(filtered);
-  }, [searchTerm, users]);
+  }, [searchTerm, users, roleFilter]);
+
+  const roleCounts = users.reduce((counts, user) => ({ ...counts, [user.role || "user"]: (counts[user.role || "user"] || 0) + 1 }), { user: 0, doctor: 0, admin: 0 });
 
   const getInitials = (name) => {
     if (!name) return "U";
@@ -120,7 +125,7 @@ const AdminUsers = () => {
               <Users className="text-pink-500" />
               Users Management
             </h2>
-            <p className="text-sm text-gray-500 mt-1">Manage all users in the system</p>
+            <p className="text-sm text-gray-500 mt-1">Patients, doctors and administrators in one place</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -134,6 +139,10 @@ const AdminUsers = () => {
               <span className="text-sm font-medium text-gray-700">{filteredUsers.length} users</span>
             </div>
           </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[['user', 'Patients'], ['doctor', 'Doctors'], ['admin', 'Admins']].map(([role, label]) => <button key={role} onClick={() => setRoleFilter(roleFilter === role ? 'all' : role)} className={`rounded-2xl border p-4 text-left shadow-sm ${roleFilter === role ? 'border-pink-400 bg-pink-50' : 'border-white/70 bg-white/80'}`}><p className="text-sm text-gray-500">{label}</p><p className="text-2xl font-extrabold text-slate-800">{roleCounts[role]}</p></button>)}
         </div>
 
         {/* Filters */}

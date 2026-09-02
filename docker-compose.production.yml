@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    volumes:
+      - glowcare_uploads:/app/uploads
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: /api
+        REACT_APP_WS_URL: /api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  glowcare_uploads:
