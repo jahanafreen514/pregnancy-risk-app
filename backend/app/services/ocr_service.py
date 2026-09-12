@@ -1,20 +1,13 @@
-import easyocr
+import pytesseract
+from PIL import Image
 
 
-# English OCR reader
-reader = easyocr.Reader(
-    ["en"],
-    gpu=False
-)
+def extract_text_from_image(image_path: str) -> str:
+    image = Image.open(image_path)
 
-
-def extract_text_from_image(image_path: str):
-
-    result = reader.readtext(
-        image_path,
-        detail=0
+    text = pytesseract.image_to_string(
+        image,
+        lang="eng"
     )
 
-    extracted_text = " ".join(result)
-
-    return extracted_text
+    return text.strip()
