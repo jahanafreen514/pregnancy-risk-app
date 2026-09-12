@@ -1,3 +1,5 @@
+import asyncio
+
 from app.models.notification_model import Notification
 from app.models.user_model import User
 from app.services.email_service import send_email
@@ -14,5 +16,8 @@ async def notify_user(user_id: str, title: str, message: str, category: str = "g
 
     user = await User.get(user_id)
     if user and user.email_notifications_enabled:
-        await send_email(user.email, title, message)
+        # Email delivery can be slow or temporarily unavailable.  A saved
+        # notification must not hold up prediction, alert, or appointment API
+        # responses while the SMTP server responds.
+        asyncio.create_task(send_email(user.email, title, message))
     return notification
