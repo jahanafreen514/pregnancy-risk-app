@@ -9,6 +9,9 @@ beanie==1.28.0
 pydantic[email]>=2.7,<3.0
 pydantic-settings==2.7.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 is incompatible with bcrypt 5.x during its bcrypt backend
+# self-check, which makes valid login attempts fail with a 500 response.
+bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.20
 
