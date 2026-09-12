@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
@@ -32,7 +33,7 @@ import {
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 import UserSidebar from "../../components/UserSidebar";
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 function Appointments() {
 
@@ -73,7 +74,7 @@ function Appointments() {
   const fetchVerifiedDoctors = async() => {
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/doctors/verified"
+        apiUrl("/doctors/verified")
       );
 
       const data = await response.json();

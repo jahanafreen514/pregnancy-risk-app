@@ -1,6 +1,7 @@
 // DoctorAppointments.jsx PART 1/3
 
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -26,7 +27,7 @@ FaPhone
 import bg from "../../assets/images/bg.png";
 
 
-const API_URL="http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 
 const DoctorAppointments=()=>{

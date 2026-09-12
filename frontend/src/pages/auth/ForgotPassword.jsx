@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../config/runtime";
 import {
   FaHeartbeat,
   FaLock,
@@ -35,7 +36,7 @@ const ForgotPassword = () => {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/forgot-password", {
+      const response = await fetch(apiUrl("/auth/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -65,7 +66,7 @@ const ForgotPassword = () => {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/validate-reset-otp", {
+      const response = await fetch(apiUrl("/auth/validate-reset-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
@@ -95,7 +96,7 @@ const ForgotPassword = () => {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/reset-password", {
+      const response = await fetch(apiUrl("/auth/reset-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, new_password: newPassword }),
@@ -116,7 +117,7 @@ const ForgotPassword = () => {
   const resendOTP = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/auth/forgot-password", {
+      const response = await fetch(apiUrl("/auth/forgot-password"), {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
       });
       const data = await response.json();

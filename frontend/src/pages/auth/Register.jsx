@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../config/runtime";
 import {
   FaHeartbeat,
   FaUser,
@@ -84,7 +85,7 @@ const handleSubmit = async (e) => {
   try {
 
     const response = await fetch(
-      "http://127.0.0.1:8000/api/auth/register",
+      apiUrl("/auth/register"),
       {
         method: "POST",
         headers: {

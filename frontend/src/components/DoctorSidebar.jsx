@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FaBars, FaBell, FaCalendarCheck, FaChartLine, FaCog, FaFileMedical, FaSignOutAlt, FaTimes, FaUserMd, FaUsers } from "react-icons/fa";
+import { apiUrl } from "../config/runtime";
 
 const links = [
   ["Dashboard", "/doctor-dashboard", FaChartLine],
@@ -23,7 +24,7 @@ export default function DoctorSidebar() {
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/doctors/me/profile", { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(apiUrl("/doctors/me/profile"), { headers: { Authorization: `Bearer ${token}` } });
         if (!response.ok) return;
         const saved = await response.json();
         setDoctor(saved);

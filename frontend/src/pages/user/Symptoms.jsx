@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../../config/runtime";
 
 import {
   FaHeartbeat,
@@ -309,7 +310,7 @@ const bmi =
 
 
       const predictionRequest = (token) => fetch(
-        "http://127.0.0.1:8000/api/prediction/predict",
+        apiUrl("/prediction/predict"),
         {
           method: "POST",
           headers: {

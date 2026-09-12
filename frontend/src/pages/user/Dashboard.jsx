@@ -1,4 +1,5 @@
 import React from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import heroMother from "../../assets/images/hero-mother.png";
@@ -110,12 +111,12 @@ const Dashboard = () => {
 
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://127.0.0.1:8000/api/appointments/patient", { headers: { Authorization: `Bearer ${token}` } })
+      fetch(apiUrl("/appointments/patient"), { headers: { Authorization: `Bearer ${token}` } })
         .then(response => response.ok ? response.json() : [])
         .then(data => setAppointments(data.map(app => ({ ...app, doctor: app.doctor_name, date: app.scheduled_for, time: new Date(app.scheduled_for).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}), type: app.appointment_type }))));
-      fetch("http://127.0.0.1:8000/api/reminders", { headers: { Authorization: `Bearer ${token}` } })
+      fetch(apiUrl("/reminders"), { headers: { Authorization: `Bearer ${token}` } })
         .then(response => response.ok ? response.json() : []).then(data => setReminderCount(data.filter(item => item.enabled).length));
-      fetch("http://127.0.0.1:8000/api/users/me/overview", { headers: { Authorization: `Bearer ${token}` } })
+      fetch(apiUrl("/users/me/overview"), { headers: { Authorization: `Bearer ${token}` } })
         .then(response => response.ok ? response.json() : null)
         .then(data => {
           if (!data) return;

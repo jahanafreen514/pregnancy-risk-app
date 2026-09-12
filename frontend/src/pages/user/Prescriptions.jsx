@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { apiUrl } from "../../config/runtime";
 import { FaCheckCircle, FaClipboardList, FaPills, FaSyncAlt } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import UserSidebar from "../../components/UserSidebar";
 import bg from "../../assets/images/bg.png";
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 export default function Prescriptions() {
   const [items, setItems] = useState([]);

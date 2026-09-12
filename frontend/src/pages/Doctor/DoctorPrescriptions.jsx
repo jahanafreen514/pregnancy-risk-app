@@ -3,6 +3,7 @@ import React, {
   useMemo,
   useState
 } from "react";
+import { apiUrl } from "../../config/runtime";
 
 import {
   Link,
@@ -123,8 +124,7 @@ const DoctorPrescriptions = () => {
 
 
 
-  const API_URL =
-    "http://127.0.0.1:8000/api";
+  const API_URL = apiUrl();
 
 
 const getAuthToken = () => {

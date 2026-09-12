@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate, Routes, Route } from "react-router-dom";
 import {
   FaHeartbeat,
@@ -75,9 +76,9 @@ const DoctorDashboard = () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [appointmentsResponse, notificationsResponse, reportsResponse] = await Promise.all([
-        fetch("http://127.0.0.1:8000/api/appointments/doctor", { headers }),
-        fetch("http://127.0.0.1:8000/api/notifications", { headers }),
-        fetch("http://127.0.0.1:8000/api/reports", { headers }),
+        fetch(apiUrl("/appointments/doctor"), { headers }),
+        fetch(apiUrl("/notifications"), { headers }),
+        fetch(apiUrl("/reports"), { headers }),
       ]);
       const rawAppointments = appointmentsResponse.ok ? await appointmentsResponse.json() : [];
       const rawNotifications = notificationsResponse.ok ? await notificationsResponse.json() : [];
@@ -191,7 +192,7 @@ const DoctorDashboard = () => {
 
   const updateAppointmentStatus = async (appointmentId, newStatus) => {
     const status = newStatus === "approved" ? "accepted" : newStatus;
-    const response = await fetch(`http://127.0.0.1:8000/api/appointments/${appointmentId}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` }, body: JSON.stringify({ status }) });
+    const response = await fetch(apiUrl(`/appointments/${appointmentId}`), { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` }, body: JSON.stringify({ status }) });
     if (response.ok) { await loadLiveData(); return; }
     // Try to find appointments in any of the possible keys
     let allAppointments = [];
@@ -247,7 +248,7 @@ const DoctorDashboard = () => {
   };
 
   const markNotificationRead = async (id) => {
-    await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    await fetch(apiUrl(`/notifications/${id}/read`), { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     const notifs = JSON.parse(localStorage.getItem("doctorNotifications")) || [];
     const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
     localStorage.setItem("doctorNotifications", JSON.stringify(updated));

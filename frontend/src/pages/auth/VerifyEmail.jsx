@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { apiUrl } from "../../config/runtime";
 
-const API = "http://127.0.0.1:8000/api/auth";
+const API = apiUrl("/auth");
 
 export default function VerifyEmail() {
   const [params] = useSearchParams();

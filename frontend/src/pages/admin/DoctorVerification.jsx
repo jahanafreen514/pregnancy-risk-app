@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { apiUrl } from "../../config/runtime";
 
 
-const API_URL = "http://127.0.0.1:8000/api";
+const API_URL = apiUrl();
 
 
 function DoctorVerification() {

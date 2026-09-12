@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_URL } from "../config/runtime";
 
-const API = "http://127.0.0.1:8000/api/auth";
+const API = `${API_URL}/auth`;
 
 
 // ===============================

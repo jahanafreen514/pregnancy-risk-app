@@ -1,5 +1,6 @@
 // DoctorProfile.jsx
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaUserMd,
@@ -40,7 +41,7 @@ const DoctorProfile = () => {
       return;
     }
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/doctors/me/profile", { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } });
+      const response = await fetch(apiUrl("/doctors/me/profile"), { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } });
       const saved = response.ok ? await response.json() : currentUser;
       localStorage.setItem("currentUser", JSON.stringify(saved));
       setDoctor(saved); setFormData(saved);
@@ -53,7 +54,7 @@ const DoctorProfile = () => {
   const handleSave = async () => {
     try {
       const payload = { name: formData.name, phone: formData.phone, specialization: formData.specialization, hospital: formData.hospital };
-      const response = await fetch("http://127.0.0.1:8000/api/doctors/me/profile", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` }, body: JSON.stringify(payload) });
+      const response = await fetch(apiUrl("/doctors/me/profile"), { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || ""}` }, body: JSON.stringify(payload) });
       const saved = await response.json();
       if (!response.ok) throw new Error(saved.detail || "Unable to save profile");
       localStorage.setItem("currentUser", JSON.stringify(saved));

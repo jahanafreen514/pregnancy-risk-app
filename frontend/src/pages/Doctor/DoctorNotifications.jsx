@@ -1,5 +1,6 @@
 // DoctorNotifications.jsx
 import React, { useState, useEffect } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaBell,
@@ -47,7 +48,7 @@ const DoctorNotifications = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/notifications", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      const response = await fetch(apiUrl("/notifications"), { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
       if (!response.ok) throw new Error("Unable to load notifications");
       const notifs = (await response.json()).map(item => ({ ...item, type: item.category, read: item.is_read, createdAt: item.created_at }));
       setNotifications(notifs);
@@ -91,7 +92,7 @@ const DoctorNotifications = () => {
   }, [doctor]);
 
   const markAsRead = async (id) => {
-    await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    await fetch(apiUrl(`/notifications/${id}/read`), { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     const updated = notifications.map(n => 
       n.id === id ? { ...n, read: true } : n
     );
@@ -99,7 +100,7 @@ const DoctorNotifications = () => {
   };
 
   const markAllAsRead = async () => {
-    await Promise.all(notifications.filter(n => !n.read).map(n => fetch(`http://127.0.0.1:8000/api/notifications/${n.id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })));
+    await Promise.all(notifications.filter(n => !n.read).map(n => fetch(apiUrl(`/notifications/${n.id}/read`), { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })));
     loadNotifications();
   };
 

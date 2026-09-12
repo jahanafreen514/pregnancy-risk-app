@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { apiUrl } from "../../config/runtime";
 import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
@@ -46,8 +47,8 @@ function Alerts() {
     if (!token) return setAlerts([]);
     try {
       const [notificationsResponse, alertsResponse] = await Promise.all([
-        fetch("http://127.0.0.1:8000/api/notifications", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("http://127.0.0.1:8000/api/alerts", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(apiUrl("/notifications"), { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(apiUrl("/alerts"), { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const notifications = notificationsResponse.ok ? await notificationsResponse.json() : [];
       const riskAlerts = alertsResponse.ok ? await alertsResponse.json() : [];
@@ -156,7 +157,7 @@ function Alerts() {
   };
 
   const handleMarkReviewed = async (id) => {
-    await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    await fetch(apiUrl(`/notifications/${id}/read`), { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     setAlerts((prev) =>
       prev.map((item) =>
         item.id === id

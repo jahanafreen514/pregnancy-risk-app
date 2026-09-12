@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../../config/runtime";
 import {
   FaBaby,
   FaNotesMedical,
@@ -175,7 +176,7 @@ const PregnancyToolkit = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/users/me/overview", { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(apiUrl("/users/me/overview"), { headers: { Authorization: `Bearer ${token}` } });
       const overview = response.ok ? await response.json() : null;
       const week = overview?.pregnancy_timing?.pregnancy_week;
       if (week) {
