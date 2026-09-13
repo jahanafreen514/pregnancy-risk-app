@@ -41,6 +41,8 @@ class PredictionRequest(BaseModel):
 class PredictionResponse(BaseModel):
 
     risk_level: str
+    screening_risk_level: str
+    ml_risk_level: str
 
     risk_score: int
     probability: float

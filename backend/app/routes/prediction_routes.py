@@ -171,6 +171,8 @@ async def predict(
     return {
 
         "risk_level": risk_level,
+        "screening_risk_level": result.get("screening_risk_level", risk_level),
+        "ml_risk_level": result.get("ml_risk_level", "Unavailable"),
 
 
         "risk_score": risk_score,

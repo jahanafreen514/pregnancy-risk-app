@@ -119,7 +119,10 @@ def calculate_prediction(data):
     # -----------------------------
     result = {
 
-        "risk_level": predicted_label,
+        # This estimate is retained for transparency. The training dataset is
+        # synthetic and is not clinically validated, so it cannot drive an
+        # alert or patient-facing triage level by itself.
+        "ml_risk_level": predicted_label,
 
         "probability": predicted_probability,
         "probability_percent": round(predicted_probability * 100, 2),
@@ -245,19 +248,29 @@ def calculate_prediction(data):
         add(65, "Vaginal bleeding was reported.")
         urgent = True
         critical_indicator_count += 1
-    if data.reduced_baby_movement:
+    # Movement patterns are usually established by around 24 weeks. Before
+    # then the symptom needs follow-up, but is not the same emergency signal.
+    if data.reduced_baby_movement and data.pregnancy_week >= 24:
         add(65, "Reduced fetal movement was reported.")
         urgent = True
         critical_indicator_count += 1
+    elif data.reduced_baby_movement:
+        add(20, "Reduced fetal movement was reported before movement patterns are usually established.")
     if "chest pain" in reported_symptoms:
-        add(35, "Chest pain was reported.")
+        add(65, "Chest pain was reported.")
+        urgent = True
+        critical_indicator_count += 1
 
-    # Raised BP plus headache/visual symptoms/upper abdominal pain is a
-    # pre-eclampsia warning pattern and needs urgent evaluation.
+    # One mildly raised reading plus symptoms needs same-day clinical review;
+    # it is not by itself a confirmed severe emergency.
     preeclampsia_symptom = bool(data.headache or data.blurred_vision or data.abdominal_pain)
     if (data.systolic_bp >= 140 or data.diastolic_bp >= 90) and preeclampsia_symptom:
-        urgent = True
         clinical_reasons.append("Raised blood pressure with pre-eclampsia warning symptoms.")
+
+    # The form does not capture duration or severity. A visual/abdominal
+    # warning symptom should request prompt review, rather than create a
+    # false emergency alert when vital signs are not severe.
+    warning_symptom = bool(data.blurred_vision or data.abdominal_pain)
 
     risk_score = min(risk_score, 100)
     if urgent:
@@ -267,16 +280,18 @@ def calculate_prediction(data):
         # Reserve 100% for multiple independent critical indicators.
         if critical_indicator_count <= 1:
             risk_score = min(risk_score, 85)
-    elif risk_score >= 30:
+    elif risk_score >= 30 or warning_symptom or (
+        (data.systolic_bp >= 140 or data.diastolic_bp >= 90) and preeclampsia_symptom
+    ):
         risk_level = "Medium"
     else:
         risk_level = "Low"
 
-    # The persisted/displayed risk class is the actual trained-model class.
-    # Rule-based screening stays separate and supplies additional reasons.
+    # Use this screening result for alerts, reports, and the patient-facing
+    # level. Keep the model output as supporting information only.
     result["screening_risk_level"] = risk_level
     result["risk_score"] = int(risk_score)
-    risk_level = result["risk_level"]
+    result["risk_level"] = risk_level
 
 
     # ==========================================
