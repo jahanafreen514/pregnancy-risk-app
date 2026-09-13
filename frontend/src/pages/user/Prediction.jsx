@@ -35,8 +35,6 @@ function Prediction() {
 
     score: null,
 
-    confidence: null,
-
     recommendation: "",
 
     symptoms: [],
@@ -87,16 +85,13 @@ function Prediction() {
           );
 
         if (!mlResult || typeof mlResult.risk_score !== "number") {
-          setRiskData({ risk: "Not assessed", score: null, confidence: null, recommendation: "Complete the symptoms assessment to generate your personalised risk prediction.", symptoms: [], riskFactors: [], vitals: {} });
+          setRiskData({ risk: "Not assessed", score: null, recommendation: "Complete the symptoms assessment to generate your personalised risk prediction.", symptoms: [], riskFactors: [], vitals: {} });
           return;
         }
 
-// The backend returns a clinical screening percentage.  Do not mix it with
-// the model's class-confidence values: doing so turned a 2% fatigue result
-// into an incorrect 50% score on this screen.
-// The API returns the trained model's class and probability. Do not recreate
-// a risk class from the separate clinical screening score in the browser.
-const displayedScore = Math.max(0, Math.min(100, Math.round(Number(mlResult.probability_percent) || 0)));
+// Display the clinical risk percentage that drives Low/Medium/High bands.
+// Model probability is deliberately not shown as a patient risk percentage.
+const displayedScore = Math.max(0, Math.min(100, Math.round(Number(mlResult.risk_score) || 0)));
 const riskLevel = mlResult.risk_level || "Not assessed";
 
 const saved = {
@@ -104,14 +99,6 @@ const saved = {
 
   risk: riskLevel,
  score: displayedScore,
-
-  // ML confidence (highest probability)
-  confidence: displayedScore,
-
-  // Keep probabilities if you want to display them
-  lowRisk: Number(mlResult.low_risk || 0),
-  mediumRisk: Number(mlResult.medium_risk || 0),
-  highRisk: Number(mlResult.high_risk || 0),
 
   symptoms: patientVitals.symptoms || [],
   riskFactors: mlResult.reasons || [],
@@ -291,12 +278,6 @@ const saved = {
           score:
 
             saved.score,
-
-
-
-          confidence:
-
-            saved.confidence,
 
 
 
@@ -991,7 +972,7 @@ const saved = {
 
 
 
-            {/* CONFIDENCE */}
+            {/* RISK PERCENTAGE PROGRESS */}
 
 
 
@@ -1003,7 +984,7 @@ const saved = {
 
                 <span className="font-semibold text-gray-700">
 
-                  Model confidence (not risk percentage)
+                  Risk percentage
 
                 </span>
 
@@ -1012,7 +993,7 @@ const saved = {
 
                 <span className="font-bold text-gray-800">
 
-                  {riskData.confidence}%
+                  {riskData.score}%
 
                 </span>
 
@@ -1034,7 +1015,7 @@ const saved = {
 
                   style={{
 
-                    width:`${riskData.confidence}%`
+                    width:`${riskData.score}%`
 
                   }}
 
@@ -1237,7 +1218,7 @@ const saved = {
 
                   <span className="text-gray-500">
 
-                    Model confidence
+                    Risk score
 
                   </span>
 
@@ -1246,7 +1227,7 @@ const saved = {
 
                   <span className="font-bold text-gray-800">
 
-                    {riskData.confidence}%
+                    {riskData.score}%
 
                   </span>
 
