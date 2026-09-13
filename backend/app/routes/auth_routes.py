@@ -235,7 +235,7 @@ async def login_user(
 
     # Find user by email
     user = await User.find_one(
-        User.email == form_data.username
+        User.email == form_data.username.lower()
     )
 
     if not user:
