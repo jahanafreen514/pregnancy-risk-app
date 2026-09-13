@@ -65,7 +65,7 @@ def otp_expired(expires_at: datetime) -> bool:
 async def forgot_password(payload: ForgotPasswordRequest):
     """Issue a short-lived OTP without revealing whether an account exists."""
     if not get_settings().email_enabled:
-        raise HTTPException(status_code=503, detail="Email delivery is not configured. Set SMTP_USERNAME, SMTP_PASSWORD and SMTP_FROM in .env.")
+        raise HTTPException(status_code=503, detail="Email delivery is not configured. Contact support to enable the email service.")
     user = await User.find_one(User.email == str(payload.email).lower())
     if user:
         otp = f"{secrets.randbelow(1_000_000):06d}"
@@ -74,11 +74,15 @@ async def forgot_password(payload: ForgotPasswordRequest):
         ).update({"$set": {"used": True}})
         token = PasswordResetToken(user_id=str(user.id), otp_hash=hash_password(otp), purpose="password_reset")
         await token.insert()
-        await send_email(
+        delivered = await send_email(
             user.email,
             "GlowCare password reset OTP",
             f"Your password reset OTP is {otp}. It expires in 15 minutes. Do not share it with anyone.",
         )
+        if not delivered:
+            token.used = True
+            await token.save()
+            raise HTTPException(status_code=503, detail="We could not deliver the OTP email. Please try again later.")
     return {"message": "If this email is registered, an OTP has been sent."}
 
 
@@ -143,20 +147,26 @@ async def verify_email(payload: VerifyEmailRequest):
 @router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
 async def resend_verification(payload: ForgotPasswordRequest):
     if not get_settings().email_enabled:
-        raise HTTPException(status_code=503, detail="Email delivery is not configured. Set SMTP_USERNAME, SMTP_PASSWORD and SMTP_FROM in .env.")
+        raise HTTPException(status_code=503, detail="Email delivery is not configured. Contact support to enable the email service.")
     user = await User.find_one(User.email == str(payload.email).lower())
     if user and not user.is_email_verified:
-        await _send_verification_otp(user)
+        if not await _send_verification_otp(user):
+            raise HTTPException(status_code=503, detail="We could not deliver the verification email. Please try again later.")
     return {"message": "If verification is required, a new OTP has been sent."}
 
 
-async def _send_verification_otp(user: User) -> None:
+async def _send_verification_otp(user: User) -> bool:
     otp = f"{secrets.randbelow(1_000_000):06d}"
     await PasswordResetToken.find(
         PasswordResetToken.user_id == str(user.id), PasswordResetToken.purpose == "email_verification", PasswordResetToken.used == False
     ).update({"$set": {"used": True}})
-    await PasswordResetToken(user_id=str(user.id), otp_hash=hash_password(otp), purpose="email_verification").insert()
-    await send_email(user.email, "Verify your GlowCare email", f"Your GlowCare verification OTP is {otp}. It expires in 15 minutes.")
+    token = PasswordResetToken(user_id=str(user.id), otp_hash=hash_password(otp), purpose="email_verification")
+    await token.insert()
+    delivered = await send_email(user.email, "Verify your GlowCare email", f"Your GlowCare verification OTP is {otp}. It expires in 15 minutes.")
+    if not delivered:
+        token.used = True
+        await token.save()
+    return delivered
 
 # =====================================================
 
