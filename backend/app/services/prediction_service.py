@@ -280,9 +280,15 @@ def calculate_prediction(data):
         # Reserve 100% for multiple independent critical indicators.
         if critical_indicator_count <= 1:
             risk_score = min(risk_score, 85)
-    elif risk_score >= 30 or warning_symptom or (
+    # Keep the user-visible bands non-overlapping and stable everywhere:
+    # Low 0-34, Medium 35-69, High 70-100. Warning patterns without severe
+    # vitals are promoted to the bottom of Medium, never to High.
+    elif warning_symptom or (
         (data.systolic_bp >= 140 or data.diastolic_bp >= 90) and preeclampsia_symptom
     ):
+        risk_score = max(risk_score, 35)
+        risk_level = "Medium"
+    elif risk_score >= 35:
         risk_level = "Medium"
     else:
         risk_level = "Low"
