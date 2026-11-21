@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     smtp_password: str | None = "dodt wvcm bjdn sfol"
     smtp_from: str | None = "glowcare20262gmail.com@gmail.com"
     # HTTP email providers work on Render's free tier, where SMTP ports are
-    # unavailable.  Resend or Brevo is used when configured.
+    # unavailable.  Google Apps Script, Resend or Brevo is used when configured.
+    gmail_webhook_url: str | None = None
     resend_api_key: str | None = None
     email_from: str | None = "GlowCare <onboarding@resend.dev>"
     brevo_api_key: str | None = None
@@ -39,7 +40,8 @@ class Settings(BaseSettings):
     @property
     def email_enabled(self) -> bool:
         return bool(
-            self.resend_api_key
+            self.gmail_webhook_url
+            or self.resend_api_key
             or self.brevo_api_key
             or (self.smtp_host and self.smtp_from)
         )

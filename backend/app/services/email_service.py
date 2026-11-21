@@ -12,10 +12,35 @@ logger = logging.getLogger(__name__)
 
 
 async def send_email(to_email: str, subject: str, body: str) -> bool:
-    """Deliver email through Brevo/Resend HTTPS or a configured SMTP server."""
+    """Deliver email through Google Apps Script, Brevo/Resend HTTPS or a configured SMTP server."""
     settings = get_settings()
     if not settings.email_enabled:
         return False
+
+    # 0. Google Apps Script Gmail HTTPS Relay (Port 443 HTTPS - sends from Gmail to ANY email worldwide)
+    if settings.gmail_webhook_url:
+        def _send_gmail_webhook():
+            payload = json.dumps({
+                "to": to_email,
+                "subject": subject,
+                "body": body,
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                settings.gmail_webhook_url.strip(),
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+            with opener.open(req, timeout=20) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+
+        try:
+            res = await asyncio.to_thread(_send_gmail_webhook)
+            logger.info(f"Email delivered to {to_email} via Google Apps Script: {res}")
+            return True
+        except Exception as e:
+            logger.exception(f"Google Apps Script email delivery failed: {e}")
 
     # 1. Brevo HTTP API (Port 443 HTTPS - works on cloud hosts without SMTP port restrictions)
     if settings.brevo_api_key:
