@@ -13,6 +13,12 @@ import {
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 
+const extractError = (detail, fallback) => {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail[0]?.msg) return detail[0].msg;
+  return fallback;
+};
+
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -27,7 +33,8 @@ const ForgotPassword = () => {
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
-    if (!email) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
       setError("Please enter your email address");
       return;
     }
@@ -39,7 +46,7 @@ const ForgotPassword = () => {
       const response = await fetch(apiUrl("/auth/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: cleanEmail }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -50,8 +57,8 @@ const ForgotPassword = () => {
         }
         setSuccess(data.message || "OTP sent. Please check your inbox.");
       } else {
-      setError(data.detail || "Unable to send OTP.");
-    }
+        setError(extractError(data.detail, "Unable to send OTP."));
+      }
     } catch {
       setError("Unable to reach the server. Please try again shortly.");
     }
@@ -60,7 +67,9 @@ const ForgotPassword = () => {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    if (!otp) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+    if (!cleanOtp) {
       setError("Please enter the OTP");
       return;
     }
@@ -72,10 +81,10 @@ const ForgotPassword = () => {
       const response = await fetch(apiUrl("/auth/validate-reset-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email: cleanEmail, otp: cleanOtp }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Invalid OTP");
+      if (!response.ok) throw new Error(extractError(data.detail, "Invalid OTP"));
       setStep(3);
       setSuccess("OTP verified. Please set your new password.");
     } catch (err) {
@@ -86,6 +95,9 @@ const ForgotPassword = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters");
       return;
@@ -102,14 +114,24 @@ const ForgotPassword = () => {
       const response = await fetch(apiUrl("/auth/reset-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, new_password: newPassword }),
+        body: JSON.stringify({ email: cleanEmail, otp: cleanOtp, new_password: newPassword }),
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.detail || "Could not reset the password.");
+        setError(extractError(data.detail, "Could not reset the password."));
       } else {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("currentUser");
         setSuccess("Password reset successfully! Redirecting to login...");
-        setTimeout(() => navigate("/login"), 2000);
+        setTimeout(() => {
+          navigate("/login", {
+            state: {
+              email: cleanEmail,
+              message: "Password reset successfully! Please sign in with your new password.",
+            },
+          });
+        }, 1500);
       }
     } catch {
       setError("Unable to reach the server. Please try again shortly.");
@@ -118,13 +140,20 @@ const ForgotPassword = () => {
   };
 
   const resendOTP = async () => {
+    const cleanEmail = email.trim().toLowerCase();
     setIsLoading(true);
     try {
       const response = await fetch(apiUrl("/auth/forgot-password"), {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
       });
       const data = await response.json();
-      setSuccess(response.ok ? (data.message || "OTP resent.") : (data.detail || "Unable to resend OTP."));
+      if (response.ok) {
+        setSuccess(data.message || "OTP resent.");
+      } else {
+        setError(extractError(data.detail, "Unable to resend OTP."));
+      }
     } catch {
       setError("Unable to reach the server. Please try again shortly.");
     } finally {

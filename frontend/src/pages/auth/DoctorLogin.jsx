@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { saveToken } from "../../services/authService";
 import {
   FaHeartbeat,
@@ -23,15 +23,17 @@ import { apiUrl } from "../../config/runtime";
 
 const DoctorLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
-    email: "",
+    email: location.state?.email || "",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState(location.state?.message || "");
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
@@ -41,12 +43,14 @@ const DoctorLogin = () => {
       [name]: value,
     });
     if (error) setError("");
+    if (infoMessage) setInfoMessage("");
   };
 
   const handleSubmit = async (e) => {
   e.preventDefault();
   setIsLoading(true);
   setError("");
+  if (infoMessage) setInfoMessage("");
 
   try {
     const response = await fetch(
@@ -57,7 +61,7 @@ const DoctorLogin = () => {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          username: formData.email,
+          username: formData.email.trim().toLowerCase(),
           password: formData.password,
         }),
       }
@@ -217,6 +221,13 @@ const DoctorLogin = () => {
                   Sign in to access doctor dashboard
                 </p>
 
+                {infoMessage && !error && !success && (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-2.5 text-blue-600">
+                    <FaCheckCircle className="text-base flex-shrink-0" />
+                    <span className="text-sm font-medium">{infoMessage}</span>
+                  </div>
+                )}
+
                 {error && (
                   <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2.5 text-red-600">
                     <FaTimesCircle className="text-base flex-shrink-0" />
@@ -241,6 +252,7 @@ const DoctorLogin = () => {
                       <input
                         type="email"
                         name="email"
+                        autoComplete="username"
                         placeholder="doctor@glowcare.com"
                         value={formData.email}
                         onChange={handleChange}
@@ -259,6 +271,7 @@ const DoctorLogin = () => {
                       <input
                         type={showPassword ? "text" : "password"}
                         name="password"
+                        autoComplete="current-password"
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={handleChange}

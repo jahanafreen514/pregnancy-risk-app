@@ -63,7 +63,7 @@ try {
 
   loginData.append(
     "username",
-    formData.email.trim()
+    formData.email.trim().toLowerCase()
   );
 
   loginData.append(

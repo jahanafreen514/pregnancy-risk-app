@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiUrl } from "../../config/runtime";
 import { saveToken } from "../../services/authService";
 import {
@@ -25,15 +25,17 @@ import bg from "../../assets/images/bg.png";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
-    email: "",
+    email: location.state?.email || "",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState(location.state?.message || "");
   const [success, setSuccess] = useState(false);
 
   const [passwordErrors, setPasswordErrors] = useState({
@@ -62,6 +64,7 @@ const Login = () => {
     }
 
     if (error) setError("");
+    if (infoMessage) setInfoMessage("");
   };
 
 const handleSubmit = async (e) => {
@@ -69,6 +72,7 @@ const handleSubmit = async (e) => {
 
   setIsLoading(true);
   setError("");
+  if (infoMessage) setInfoMessage("");
 
   try {
     // OAuth2PasswordRequestForm expects form-urlencoded
@@ -300,6 +304,13 @@ const handleSubmit = async (e) => {
                 </p>
 
                 {/* Error/Success Messages */}
+                {infoMessage && !error && !success && (
+                  <div className="mb-4 p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3 text-blue-600">
+                    <FaCheckCircle className="text-lg flex-shrink-0" />
+                    <span className="text-sm font-medium">{infoMessage}</span>
+                  </div>
+                )}
+
                 {error && (
                   <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-600">
                     <FaTimesCircle className="text-lg flex-shrink-0" />
@@ -326,6 +337,7 @@ const handleSubmit = async (e) => {
                       <input
                         type="email"
                         name="email"
+                        autoComplete="username"
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleChange}
@@ -345,6 +357,7 @@ const handleSubmit = async (e) => {
                       <input
                         type={showPassword ? "text" : "password"}
                         name="password"
+                        autoComplete="current-password"
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={handleChange}
