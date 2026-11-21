@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # HTTP email providers work on Render's free tier, where SMTP ports are
     # unavailable.  Resend or Brevo is used when configured.
     resend_api_key: str | None = None
-    email_from: str | None = None
+    email_from: str | None = "GlowCare <onboarding@resend.dev>"
     brevo_api_key: str | None = None
     frontend_url: str | None = None
     backend_url: str | None = None
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     @property
     def email_enabled(self) -> bool:
         return bool(
-            (self.resend_api_key and self.email_from)
+            self.resend_api_key
             or self.brevo_api_key
             or (self.smtp_host and self.smtp_from)
         )

@@ -46,33 +46,37 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
             logger.exception("Brevo email delivery failed")
 
     # 2. Resend HTTP API (Port 443 HTTPS - works on cloud hosts without SMTP port restrictions)
-    if settings.resend_api_key and settings.email_from:
+    if settings.resend_api_key:
+        clean_resend_key = settings.resend_api_key.strip()
+        from_address = (settings.email_from or "GlowCare <onboarding@resend.dev>").strip()
+
         def _send_resend():
             request = urllib.request.Request(
                 "https://api.resend.com/emails",
                 data=json.dumps({
-                    "from": settings.email_from,
+                    "from": from_address,
                     "to": [to_email],
                     "subject": subject,
                     "text": body,
                 }).encode("utf-8"),
                 headers={
-                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Authorization": f"Bearer {clean_resend_key}",
                     "Content-Type": "application/json",
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(request, timeout=15):
-                pass
+            with urllib.request.urlopen(request, timeout=15) as resp:
+                return resp.read().decode("utf-8")
 
         try:
-            await asyncio.to_thread(_send_resend)
-            logger.info(f"Email delivered to {to_email} via Resend HTTP API")
+            res = await asyncio.to_thread(_send_resend)
+            logger.info(f"Email delivered to {to_email} via Resend HTTP API: {res}")
             return True
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
-            logger.exception("Resend email delivery failed")
-        except Exception:
-            logger.exception("Unexpected email delivery failure")
+        except urllib.error.HTTPError as http_err:
+            err_body = http_err.read().decode("utf-8", errors="replace")
+            logger.error(f"Resend HTTP {http_err.code} error: {err_body}")
+        except Exception as e:
+            logger.exception(f"Resend delivery failed: {e}")
 
     # 3. SMTP Delivery (Try Port 587 STARTTLS, then Port 465 SSL)
     message = EmailMessage()
