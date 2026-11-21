@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     smtp_from: str | None = "glowcare20262gmail.com@gmail.com"
     # HTTP email providers work on Render's free tier, where SMTP ports are
     # unavailable.  Google Apps Script, Resend or Brevo is used when configured.
-    gmail_webhook_url: str | None = None
+    gmail_webhook_url: str | None = "https://script.google.com/macros/s/AKfycbxP7gDaBG5YDKsbCL06p1bS9bbQvcNHPeG6B1sQkNQdyw4VuWSY-xa2wEuYUWKQpZEl/exec"
     resend_api_key: str | None = None
     email_from: str | None = "GlowCare <onboarding@resend.dev>"
     brevo_api_key: str | None = None
