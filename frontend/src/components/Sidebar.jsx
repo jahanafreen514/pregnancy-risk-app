@@ -1,13 +1,12 @@
 import {
   LayoutDashboard,
   Users,
-  FileText,
+  FileChartColumn,
   Settings,
   LogOut,
-  UserCog,
+  UserRound,
   Stethoscope,
   MessageSquare,
-  ShieldCheck,
   Activity,
   Bell,
 } from "lucide-react";
@@ -26,7 +25,7 @@ const menuItems = [
     path: "/admin-users",
   },
   {
-    icon: <UserCog size={20} />,
+    icon: <UserRound size={20} />,
     name: "Doctors",
     path: "/admin-doctors",
   },
@@ -46,7 +45,7 @@ const menuItems = [
     path: "/admin-alerts",
   },
   {
-    icon: <ShieldCheck size={20} />,
+    icon: <Settings size={20} />,
     name: "Admin Settings",
     path: "/admin-settings",
   },
@@ -110,9 +109,9 @@ function Sidebar() {
   return (
     <div className="fixed left-0 top-0 h-screen w-72 bg-white border-r shadow-lg overflow-y-auto z-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-pink-500 to-sky-400 p-5">
+      <div className="bg-gradient-to-r from-[#0F766E] to-[#38B2AC] p-5">
         <h1 className="text-2xl font-bold text-white">GlowCare</h1>
-        <p className="text-pink-100 text-sm">Admin Panel</p>
+                <p className="text-[#64748B] text-sm">Admin Panel</p>
       </div>
 
       {/* Admin Info */}
@@ -145,7 +144,7 @@ function Sidebar() {
               text-sm
               ${
                 isActive
-                  ? "bg-gradient-to-r from-pink-50 to-sky-50 text-pink-600 font-semibold shadow-sm border border-pink-100/50"
+                  ? "bg-gradient-to-r from-[#CCFBF1] to-[#38B2AC] text-[#12304A] font-semibold shadow-sm border border-[#E2E8F0]"
                   : "text-gray-600 hover:bg-pink-50 hover:text-pink-500"
               }
               `
@@ -158,9 +157,9 @@ function Sidebar() {
       </div>
 
       {/* Quick Stats */}
-      <div className="px-3 py-2 border-t border-pink-100/50 bg-pink-50/20">
+      <div className="px-3 py-2 border-t border-[#E2E8F0] bg-[#F5F9FC]">
         <div className="grid grid-cols-3 gap-2">
-          <div className="text-center p-1.5 bg-white/60 rounded-lg">
+          <div className="text-center p-1.5 bg-white/60 rounded-lg hover:bg-[#CCFBF1] transition-colors duration-200">
             <p className="text-sm font-bold text-pink-500">{stats.totalDoctors}</p>
             <p className="text-[8px] text-gray-500">Doctors</p>
           </div>

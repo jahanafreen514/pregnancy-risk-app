@@ -11,6 +11,7 @@ import {
   FaChartLine,
   FaBell,
 } from "react-icons/fa";
+import { Search, Bot, Heart } from "lucide-react";
 
 import bg from "../../assets/images/bg.png";
 import hero from "../../assets/images/hero-mother.png";
@@ -95,7 +96,7 @@ const Home = () => {
             <div className="relative flex justify-center lg:justify-end">
               <div className="absolute w-[500px] h-[500px] bg-pink-300 blur-[120px] opacity-20 rounded-full animate-pulse"></div>
               <div className="absolute w-[350px] h-[350px] bg-sky-300 blur-[100px] opacity-10 rounded-full animate-pulse" style={{ animationDelay: "1s" }}></div>
-              
+
               <div className="relative group">
                 <div className="absolute -inset-6 rounded-[50px] bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
                 <img
@@ -183,11 +184,11 @@ const Home = () => {
 
                   <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">
-                      <span className="text-xl">🔍</span>
+                      <Search className="text-xl" />
                       <span className="font-medium text-gray-700">Early Detection</span>
                     </div>
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">
-                      <span className="text-xl">🤖</span>
+                      <Bot className="text-xl" />
                       <span className="font-medium text-gray-700">ML-Powered</span>
                     </div>
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">

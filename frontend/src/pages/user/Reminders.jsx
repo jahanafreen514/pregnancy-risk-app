@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import UserSidebar from "../../components/UserSidebar";
 import bg from "../../assets/images/bg.png";
 import { apiUrl } from "../../config/runtime";
@@ -7,9 +7,17 @@ export default function Reminders() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ kind: "water", title: "Water intake reminder", message: "Time to drink water and stay hydrated.", time_of_day: "09:00" });
   const [message, setMessage] = useState("");
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("access_token") || ""}` };
-  const load = async () => { const response = await fetch(apiUrl("/reminders"), { headers }); if (response.ok) setItems(await response.json()); else setMessage("Unable to load reminders."); };
-  useEffect(() => { load(); }, []);
+  const headers = useMemo(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("access_token") || ""}` }), []);
+
+  const load = useCallback(async () => {
+  const response = await fetch(apiUrl("/reminders"), { headers });
+  if (response.ok) setItems(await response.json());
+  else setMessage("Unable to load reminders.");
+}, [headers]);
+
+useEffect(() => {
+  load();
+}, [load]);
   const create = async (event) => { event.preventDefault(); const response = await fetch(apiUrl("/reminders"), { method: "POST", headers, body: JSON.stringify(form) }); const data = await response.json(); setMessage(response.ok ? "Daily reminder saved. It will continue every day until you delete it." : data.detail || "Unable to save reminder."); if (response.ok) load(); };
   const remove = async (id) => { if (!window.confirm("Delete this daily reminder?")) return; await fetch(apiUrl(`/reminders/${id}`), { method: "DELETE", headers }); load(); };
   const test = async (id) => { const response = await fetch(apiUrl(`/reminders/${id}/test`), { method: "POST", headers }); const data = await response.json(); setMessage(response.ok ? data.message : data.detail || "Unable to send test reminder."); };

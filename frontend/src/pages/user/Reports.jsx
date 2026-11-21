@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import bg from "../../assets/images/bg.png";
@@ -14,7 +14,6 @@ import {
   FaHeart,
   FaClipboardList,
   FaShieldAlt,
-  FaUserCircle,
   FaBaby,
   FaChartLine,
   FaBell,
@@ -23,7 +22,6 @@ import {
   FaTrash,
   FaDownload,
   FaFilter,
-  FaStethoscope,
 } from "react-icons/fa";
 
 function Reports() {
@@ -31,10 +29,11 @@ function Reports() {
 
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
-  const [selectedReport, setSelectedReport] = useState(null);
+  
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("All");
   const [loadError, setLoadError] = useState("");
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     loadReports();
@@ -147,7 +146,6 @@ function Reports() {
   };
 
   // Get selected report data with null checks
-  const selected = selectedReport || {};
 
   return (
     <div

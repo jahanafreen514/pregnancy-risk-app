@@ -73,7 +73,9 @@ const handleSubmit = async (e) => {
   try {
     // OAuth2PasswordRequestForm expects form-urlencoded
     const body = new URLSearchParams();
-    body.append("username", formData.email);
+    // Email is case-insensitive and users frequently paste trailing spaces.
+    // Passwords must remain byte-for-byte unchanged.
+    body.append("username", formData.email.trim().toLowerCase());
     body.append("password", formData.password);
 
     const response = await fetch(
@@ -87,7 +89,13 @@ const handleSubmit = async (e) => {
       }
     );
 
-    const data = await response.json();
+    const rawResponse = await response.text();
+    let data = {};
+    try {
+      data = rawResponse ? JSON.parse(rawResponse) : {};
+    } catch {
+      data = { detail: "The server returned an unexpected response. Please try again shortly." };
+    }
 
     if (!response.ok) {
       throw new Error(
