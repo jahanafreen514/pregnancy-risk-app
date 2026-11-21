@@ -1,5 +1,5 @@
 // DoctorProfile.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -16,13 +16,6 @@ import {
   FaEdit,
   FaSave,
   FaTimes,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaHospital,
-  FaGraduationCap,
-  FaClock,
-  FaCheckCircle,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 
@@ -34,7 +27,7 @@ const DoctorProfile = () => {
   const [formData, setFormData] = useState({});
   const [activeTab, setActiveTab] = useState("profile");
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     if (!currentUser || currentUser.role !== "doctor") {
       navigate("/doctor-login");
@@ -47,9 +40,9 @@ const DoctorProfile = () => {
       setDoctor(saved); setFormData(saved);
     } catch { setDoctor(currentUser); setFormData(currentUser); }
     finally { setLoading(false); }
-  };
+  }, [navigate]);
 
-  useEffect(() => { loadProfile(); }, [navigate]);
+  useEffect(() => { loadProfile(); }, [loadProfile]);
 
   const handleSave = async () => {
     try {

@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  FileChartColumn,
   Settings,
   LogOut,
   UserRound,

@@ -1,6 +1,6 @@
 // DoctorAppointments.jsx PART 1/3
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -20,8 +20,6 @@ import {
  FaSpinner,
  FaSearch,
  FaEnvelope,
-FaPhone
- ,FaVideo
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
@@ -50,84 +48,22 @@ const [statusFilter,setStatusFilter]=useState("all");
 
 const [typeFilter,setTypeFilter]=useState("all");
 
-const [selectedAppointment,setSelectedAppointment]=useState(null);
-
-const [showModal,setShowModal]=useState(false);
-
 const [showStatusMessage,setShowStatusMessage]=useState(null);
 
 const [activeTab,setActiveTab]=useState("appointments");
 
-const [notifications,setNotifications]=useState([]);
-
-
-
-/*
- LOAD LOGIN DOCTOR
-*/
-
-useEffect(()=>{
-
-
- const currentUser=
- JSON.parse(
- localStorage.getItem("currentUser")
- );
-
-
- if(
- !currentUser ||
- currentUser.role!=="doctor"
- ){
-
- navigate("/doctor-login");
- return;
-
- }
-
-
- setDoctor(currentUser);
-
-
-},[]);
-
-
-
-/*
- LOAD APPOINTMENTS AFTER DOCTOR AVAILABLE
-*/
-
-useEffect(()=>{
-
-
- if(doctor){
-
-   loadAppointments();
-
- }
-
-
-},[doctor]);
-
-
-
-
+const [notifications]=useState([]);
 
 /*
  FETCH APPOINTMENTS
 */
 
 
-const loadAppointments = async () => {
+const loadAppointments = useCallback(async () => {
 
  try {
 
   setLoading(true);
-
-
-  const currentUser =
-    JSON.parse(localStorage.getItem("currentUser"));
-
 
   const token = localStorage.getItem("token");
 
@@ -206,7 +142,55 @@ const loadAppointments = async () => {
 
  }
 
-};
+}, [navigate]);
+
+
+/*
+ LOAD LOGIN DOCTOR
+*/
+
+useEffect(()=>{
+
+
+ const currentUser=
+ JSON.parse(
+ localStorage.getItem("currentUser")
+ );
+
+
+ if(
+ !currentUser ||
+ currentUser.role!=="doctor"
+ ){
+
+ navigate("/doctor-login");
+ return;
+
+ }
+
+
+ setDoctor(currentUser);
+
+
+},[navigate]);
+
+
+
+/*
+ LOAD APPOINTMENTS AFTER DOCTOR AVAILABLE
+*/
+
+useEffect(()=>{
+
+
+ if(doctor){
+
+   loadAppointments();
+
+ }
+
+
+},[doctor, loadAppointments]);
 
 
 
@@ -222,12 +206,6 @@ async(id,status)=>{
 
 
 try{
-
-
-const currentUser =
-JSON.parse(
-localStorage.getItem("currentUser")
-);
 
 
 
@@ -477,7 +455,7 @@ refresh
 };
 
 
-},[doctor]);
+},[loadAppointments]);
 
 
 

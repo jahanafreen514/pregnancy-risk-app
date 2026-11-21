@@ -1,17 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  FaHeartbeat,
   FaUserMd,
   FaArrowRight,
   FaPlayCircle,
   FaQuoteLeft,
-  FaBaby,
   FaShieldAlt,
   FaChartLine,
   FaBell,
 } from "react-icons/fa";
-import { Search, Bot, Heart } from "lucide-react";
+import { Search, Bot } from "lucide-react";
 
 import bg from "../../assets/images/bg.png";
 import hero from "../../assets/images/hero-mother.png";

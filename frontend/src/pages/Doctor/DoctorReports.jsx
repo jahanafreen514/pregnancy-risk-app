@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -21,15 +21,11 @@ import {
   FaNotesMedical,
   FaUser,
   FaEnvelope,
-  FaCalendarAlt,
   FaCheckCircle,
   FaPrint,
   FaHistory,
   FaClock,
   FaStethoscope,
-  FaFileSignature,
-  FaPlus,
-  FaUserPlus,
   FaEdit,
 } from "react-icons/fa";
 
@@ -60,19 +56,7 @@ const DoctorReports = () => {
     low: 0,
   });
 
-  useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-
-    if (!currentUser || currentUser.role !== "doctor") {
-      navigate("/doctor-login");
-      return;
-    }
-
-    setDoctor(currentUser);
-    loadReports();
-  }, []);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
 
     // The report is stored on the backend when the patient completes an
@@ -214,7 +198,19 @@ const DoctorReports = () => {
     }
 
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+    if (!currentUser || currentUser.role !== "doctor") {
+      navigate("/doctor-login");
+      return;
+    }
+
+    setDoctor(currentUser);
+    loadReports();
+  }, [navigate, loadReports]);
 
   useEffect(() => {
     let data = [...reports];
@@ -248,7 +244,7 @@ const DoctorReports = () => {
       window.removeEventListener("storage", updateReports);
       window.removeEventListener("dataUpdated", updateReports);
     };
-  }, []);
+  }, [loadReports]);
 
   const openReport = (report) => {
     setSelectedReport(report);
@@ -267,6 +263,14 @@ const createPrescription = () => {
 
   if(!selectedReport) return;
 
+  localStorage.setItem(
+    "selectedPatient",
+    JSON.stringify({
+      id: selectedReport.patientId,
+      name: selectedReport.patient,
+      email: selectedReport.email,
+    })
+  );
 
   localStorage.setItem(
     "selectedPrescriptionPatient",
@@ -847,24 +851,7 @@ Generated: ${new Date().toLocaleString()}
                 </button>
 
                 <button
-                 onClick={()=>{
-
-localStorage.setItem(
-"selectedPatient",
-JSON.stringify({
-
-id:selectedReport.patientId,
-name:selectedReport.patient,
-email:selectedReport.email
-
-})
-);
-
-
-navigate("/doctor-prescriptions");
-
-
-}}
+                  onClick={createPrescription}
                   className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-105"
                 >
                   <FaPrescription />

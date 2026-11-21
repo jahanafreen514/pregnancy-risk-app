@@ -10,11 +10,6 @@ import {
   Server,
   Settings,
   LogOut,
-  RefreshCw,
-  Activity,
-  Bell,
-  AlertTriangle,
-  CheckCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -33,7 +28,7 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
     totalReports: 0,
     totalFeedbacks: 0,
   });
-  const [statsState, setStatsState] = useState("loading");
+  const [, setStatsState] = useState("loading");
 
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -48,7 +43,7 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
     setActiveTab(path);
     
     loadStats();
-  }, [location]);
+  }, [location, navigate]);
 
   useEffect(() => {
     const refreshId = window.setInterval(loadStats, 30_000);

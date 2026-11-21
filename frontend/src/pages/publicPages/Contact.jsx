@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  FaHeartbeat,
   FaEnvelope,
   FaPhone,
   FaMapMarkerAlt,
@@ -15,11 +13,9 @@ import {
   FaFacebook,
   FaInstagram,
   FaLinkedin,
-  FaArrowRight,
   FaSpinner,
   FaHeadset,
   FaMailBulk,
-  FaGlobe,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 import { apiUrl } from "../../config/runtime";

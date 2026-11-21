@@ -1,6 +1,6 @@
 import React, {
+  useCallback,
   useEffect,
-  useMemo,
   useState
 } from "react";
 import { apiUrl } from "../../config/runtime";
@@ -12,25 +12,20 @@ import {
 } from "react-router-dom";
 
 import {
-  FaAmbulance,
   FaBell,
   FaCalendarCheck,
   FaCheckCircle,
   FaChartLine,
-  FaCog,
   FaEdit,
-  FaEnvelope,
   FaFileMedical,
   FaNotesMedical,
   FaPlus,
   FaPrescription,
-  FaSearch,
   FaSignOutAlt,
   FaSpinner,
   FaStethoscope,
   FaTimes,
   FaTrash,
-  FaUser,
   FaUserMd,
   FaUsers
 } from "react-icons/fa";
@@ -52,6 +47,8 @@ const EMPTY_FORM = {
 
 };
 
+
+const API_URL = apiUrl();
 
 const DoctorPrescriptions = () => {
 
@@ -123,10 +120,6 @@ const DoctorPrescriptions = () => {
   ] = useState(false);
 
 
-
-  const API_URL = apiUrl();
-
-
 const getAuthToken = () => {
 
   const stored =
@@ -154,70 +147,11 @@ const getAuthToken = () => {
 };
 
 
-  useEffect(() => {
-
-
-    let currentUser = null;
-
-
-    try {
-
-      currentUser =
-        JSON.parse(
-          localStorage.getItem(
-            "currentUser"
-          ) || "null"
-        );
-
-
-    } catch(error){
-
-      console.error(
-        "User parse error",
-        error
-      );
-
-    }
-
-
-
-    if(
-      !currentUser ||
-      currentUser.role !== "doctor"
-    ){
-
-      navigate(
-        "/doctor-login"
-      );
-
-      return;
-
-    }
-
-
-
-    setDoctor(
-      currentUser
-    );
-
-
-    loadPrescriptions();
-
-
-
-  },[
-    navigate
-  ]);
-
-const loadPrescriptions = async () => {
+  const loadPrescriptions = useCallback(async () => {
 
   try {
 
     setLoading(true);
-
-    const user = JSON.parse(
-      localStorage.getItem("currentUser") || "null"
-    );
 
     const token = getAuthToken();
 
@@ -368,7 +302,63 @@ if (!token) {
 
   }
 
-};
+}, []);
+
+  useEffect(() => {
+
+
+    let currentUser = null;
+
+
+    try {
+
+      currentUser =
+        JSON.parse(
+          localStorage.getItem(
+            "currentUser"
+          ) || "null"
+        );
+
+
+    } catch(error){
+
+      console.error(
+        "User parse error",
+        error
+      );
+
+    }
+
+
+
+    if(
+      !currentUser ||
+      currentUser.role !== "doctor"
+    ){
+
+      navigate(
+        "/doctor-login"
+      );
+
+      return;
+
+    }
+
+
+
+    setDoctor(
+      currentUser
+    );
+
+
+    loadPrescriptions();
+
+
+
+  },[
+    navigate,
+    loadPrescriptions
+  ]);
 
 
 
@@ -729,12 +719,6 @@ const deletePrescription = async(id)=>{
 
 if(!window.confirm("Delete prescription?"))
 return;
-
-
-const user =
-JSON.parse(
-localStorage.getItem("currentUser")
-);
 
 
 

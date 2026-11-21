@@ -24,8 +24,6 @@ import {
   FaBaby,
   FaNotesMedical,
   FaTimes,
-  FaUser,
-  FaHeart,
 } from "react-icons/fa";
 
 import bg from "../../assets/images/bg.png";
@@ -44,8 +42,6 @@ const DoctorPatients = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("patients");
-
   // LOGIN CHECK
   useEffect(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -57,7 +53,7 @@ const DoctorPatients = () => {
 
     setDoctor(currentUser);
     loadPatients();
-  }, []);
+  }, [navigate]);
 
   // LOAD PATIENTS FROM PREDICTION FLOW
   const loadPatients = () => {
@@ -153,35 +149,6 @@ const DoctorPatients = () => {
   const highRisk = patients.filter((p) => p.riskLevel === "High").length;
   const mediumRisk = patients.filter((p) => p.riskLevel === "Medium").length;
   const lowRisk = patients.filter((p) => p.riskLevel === "Low").length;
-
-  // Helper function for risk badge styling
-  const getRiskBadge = (riskLevel) => {
-    switch (riskLevel?.toLowerCase()) {
-      case "high":
-        return "bg-red-100 text-red-600 border-red-200";
-      case "medium":
-        return "bg-orange-100 text-orange-600 border-orange-200";
-      case "low":
-        return "bg-green-100 text-green-600 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-600 border-gray-200";
-    }
-  };
-
-  // Helper function to format date
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
-  };
 
   if (loading) {
     return (
@@ -616,22 +583,6 @@ const DoctorPatients = () => {
     </div>
   );
 };
-
-// Information Box
-const InfoBox = ({ title, value }) => (
-  <div className="bg-white rounded-xl p-3 shadow-sm">
-    <p className="text-xs text-gray-400">{title}</p>
-    <p className="font-semibold text-gray-700 mt-1">{value}</p>
-  </div>
-);
-
-// Vital Card
-const VitalCard = ({ label, value }) => (
-  <div className="bg-gray-50 rounded-xl p-4">
-    <p className="text-xs text-gray-400">{label}</p>
-    <p className="font-bold text-gray-800 mt-2">{value}</p>
-  </div>
-);
 
 // Sidebar Item
 const NavItem = ({ label, icon, to, active, onClick, badge }) => (

@@ -7,7 +7,6 @@ import {
   FaStethoscope,
   FaShieldAlt,
   FaHeart,
-  FaSpinner,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 

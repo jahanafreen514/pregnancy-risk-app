@@ -7,7 +7,7 @@ import { apiUrl } from "../../config/runtime";
 
 export default function AdminDashboard() {
   const [data, setData] = useState({ users: 0, doctors: 0, appointments: 0, highRiskRecords: 0, mediumRiskRecords: 0, lowRiskRecords: 0, unreadAlerts: 0, reports: 0 });
-  const [recentDoctors, setRecentDoctors] = useState([]);
+  const [, setRecentDoctors] = useState([]);
   const [recentUsers, setRecentUsers] = useState([]);
   const [feedbackTotal, setFeedbackTotal] = useState(0);
   const [error, setError] = useState("");

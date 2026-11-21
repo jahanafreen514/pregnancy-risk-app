@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { apiUrl } from "../../config/runtime";
 import { Link, useNavigate, Routes, Route } from "react-router-dom";
 import {
-  FaHeartbeat,
-  FaStethoscope,
   FaMoon,
   FaGlobe,
   FaLock,
   FaSave,
-  FaBaby,
-  FaNotesMedical,
-  FaLightbulb,
   FaChartLine,
   FaBell,
   FaCalendarAlt,
-  FaUser,
   FaUserMd,
   FaUsers,
   FaCalendarCheck,
@@ -22,20 +16,13 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaSpinner,
-  FaUserCircle,
   FaSignOutAlt,
   FaClipboardList,
   FaFileMedical,
   FaAmbulance,
   FaHospitalAlt,
   FaPrescription,
-  FaShieldAlt,
   FaVideo,
-  FaPhone,
-  FaEnvelope,
-  FaMapMarkerAlt,
-  FaStar,
-  FaArrowLeft,
   FaEdit,
   FaCog,
 } from "react-icons/fa";
@@ -60,17 +47,7 @@ const DoctorDashboard = () => {
     highRiskPatients: 0,
   });
 
-  useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    if (!currentUser || currentUser.role !== "doctor") {
-      navigate("/doctor-login");
-      return;
-    }
-    setDoctor(currentUser);
-    loadLiveData();
-  }, []);
-
-  const loadLiveData = async () => {
+  const loadLiveData = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
@@ -103,9 +80,19 @@ const DoctorDashboard = () => {
       });
     } catch (error) { console.error("Doctor dashboard API loading error", error); }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  const loadData = () => {
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    if (!currentUser || currentUser.role !== "doctor") {
+      navigate("/doctor-login");
+      return;
+    }
+    setDoctor(currentUser);
+    loadLiveData();
+  }, [navigate, loadLiveData]);
+
+  const loadData = useCallback(() => {
     // Try multiple possible keys for appointments
     let allAppointments = [];
     const possibleKeys = ['appointments', 'doctorAppointmentRequests', 'appointmentRequests'];
@@ -188,7 +175,7 @@ const DoctorDashboard = () => {
     });
 
     setLoading(false);
-  };
+  }, [doctor]);
 
   const updateAppointmentStatus = async (appointmentId, newStatus) => {
     const status = newStatus === "approved" ? "accepted" : newStatus;
@@ -297,7 +284,7 @@ const DoctorDashboard = () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("appointmentUpdated", handleAppointmentUpdate);
     };
-  }, [doctor]);
+  }, [loadData]);
 
   if (loading) {
     return (
@@ -947,7 +934,7 @@ const DoctorReports = ({ doctor, patientUpdates, getRiskBadge }) => {
 
 /* ===== 4. DOCTOR PRESCRIPTIONS ===== */
 const DoctorPrescriptions = ({ doctor }) => {
-  const [prescriptions, setPrescriptions] = useState([
+  const [prescriptions] = useState([
     { id: 1, patient: "Sarah Johnson", medication: "Prenatal Vitamins", dosage: "1 tablet daily", date: "2026-07-10", status: "active" },
     { id: 2, patient: "Priya Sharma", medication: "Iron Supplement", dosage: "2 tablets daily", date: "2026-07-08", status: "active" },
     { id: 3, patient: "Ananya Patel", medication: "Calcium + Vitamin D", dosage: "1 tablet daily", date: "2026-07-05", status: "completed" },

@@ -7,14 +7,13 @@ import {
   Moon,
   Bell,
   Globe,
-  Lock,
   Shield,
   Key,
   Mail,
 } from "lucide-react";
 
 const AdminSettings = () => {
-  const [admin, setAdmin] = useState(null);
+  const [, setAdmin] = useState(null);
   const [settings, setSettings] = useState({
     darkMode: false,
     notifications: true,

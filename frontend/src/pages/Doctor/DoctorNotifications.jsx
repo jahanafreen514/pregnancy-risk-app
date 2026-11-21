@@ -13,14 +13,9 @@ import {
   FaUserMd,
   FaCog,
   FaSignOutAlt,
-  FaCheckCircle,
-  FaTimesCircle,
   FaSpinner,
   FaClock,
-  FaEnvelope,
   FaUser,
-  FaCalendarAlt,
-  FaExclamationTriangle,
   FaCheck,
   FaTrash,
 } from "react-icons/fa";
@@ -43,7 +38,7 @@ const DoctorNotifications = () => {
     }
     setDoctor(currentUser);
     loadNotifications();
-  }, []);
+  }, [navigate]);
 
   const loadNotifications = async () => {
     setLoading(true);

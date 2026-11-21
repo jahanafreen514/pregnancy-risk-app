@@ -50,10 +50,10 @@ const DoctorSettings = () => {
     // Load saved settings
     const savedSettings = JSON.parse(localStorage.getItem("doctorSettings"));
     if (savedSettings) {
-      setSettings({...settings, ...savedSettings});
+      setSettings(prev => ({ ...prev, ...savedSettings }));
     }
     setLoading(false);
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e) => {
     setSettings({
