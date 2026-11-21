@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -16,17 +16,10 @@ import {
   FaUserCircle,
   FaBell,
   FaChartLine,
-  FaStethoscope,
   FaClipboardList,
   FaCalendarAlt,
-  FaSignOutAlt,
   FaShieldAlt,
   FaHospital,
-  FaMapMarkerAlt,
-  FaBirthdayCake,
-  FaVenusMars,
-  FaPills,
-  FaWater,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
 import UserSidebar from "../../components/UserSidebar";
@@ -52,7 +45,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
 
   // Load all data from localStorage
-  const loadAllData = () => {
+  const loadAllData = useCallback(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
     if (!currentUser) {
       navigate("/login");
@@ -147,7 +140,7 @@ const Profile = () => {
     });
 
     setLoading(false);
-  };
+  }, [navigate]);
 
   useEffect(() => {
     loadAllData();
@@ -178,12 +171,7 @@ const Profile = () => {
     loadOverview();
     const refresh = setInterval(() => { loadAllData(); loadOverview(); }, 15000);
     return () => clearInterval(refresh);
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("currentUser");
-    navigate("/login");
-  };
+  }, [navigate, loadAllData]);
 
   const getUserInitials = () => {
     if (!user?.name) return "U";

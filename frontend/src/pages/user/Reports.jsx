@@ -35,13 +35,36 @@ function Reports() {
   const [loadError, setLoadError] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
 
+  const filterReports = useCallback(() => {
+    let data = [...reports];
+
+    if (riskFilter !== "All") {
+      data = data.filter((r) => r.risk === riskFilter);
+    }
+
+    if (search.trim()) {
+      const txt = search.toLowerCase();
+      data = data.filter((r) => {
+        const symptoms = Array.isArray(r.symptoms)
+          ? r.symptoms.join(", ").toLowerCase()
+          : "";
+        return (
+          (r.risk || "").toLowerCase().includes(txt) ||
+          symptoms.includes(txt)
+        );
+      });
+    }
+
+    setFilteredReports(data);
+  }, [reports, search, riskFilter]);
+
   useEffect(() => {
     loadReports();
   }, []);
 
   useEffect(() => {
     filterReports();
-  }, [reports, search, riskFilter]);
+  }, [filterReports]);
 
   const loadReports = async () => {
     try {
@@ -73,29 +96,6 @@ function Reports() {
           : `Reports could not be loaded${detail ? `: ${detail}` : "."}`
       );
     }
-  };
-
-  const filterReports = () => {
-    let data = [...reports];
-
-    if (riskFilter !== "All") {
-      data = data.filter((r) => r.risk === riskFilter);
-    }
-
-    if (search.trim()) {
-      const txt = search.toLowerCase();
-      data = data.filter((r) => {
-        const symptoms = Array.isArray(r.symptoms)
-          ? r.symptoms.join(", ").toLowerCase()
-          : "";
-        return (
-          (r.risk || "").toLowerCase().includes(txt) ||
-          symptoms.includes(txt)
-        );
-      });
-    }
-
-    setFilteredReports(data);
   };
 
   const deleteReport = () => alert("Medical reports are retained securely and cannot be deleted from the patient portal.");
