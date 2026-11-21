@@ -99,14 +99,12 @@ async def forgot_password(payload: ForgotPasswordRequest):
         logger.warning(f"🔑 [PASSWORD RESET OTP] Generated for {user.email}: {otp}")
 
         if not delivered:
-            # Render Free Tier blocks outbound SMTP ports (25, 465, 587).
-            # Provide the OTP in the response so password resets succeed without failing with 503.
-            return {
-                "message": f"OTP generated! (Render free tier blocks SMTP port 587; your OTP is: {otp})",
-                "demo_otp": otp
-            }
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to deliver OTP email. Please ensure the email service is reachable or try again shortly."
+            )
 
-    return {"message": "If this email is registered, an OTP has been sent."}
+    return {"message": "An OTP has been sent to your registered email address. Please check your inbox."}
 
 
 @router.post("/reset-password")

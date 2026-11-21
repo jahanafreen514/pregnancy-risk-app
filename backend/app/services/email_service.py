@@ -12,11 +12,40 @@ logger = logging.getLogger(__name__)
 
 
 async def send_email(to_email: str, subject: str, body: str) -> bool:
-    """Deliver email through Resend HTTPS or, locally, a configured SMTP server."""
+    """Deliver email through Brevo/Resend HTTPS or a configured SMTP server."""
     settings = get_settings()
     if not settings.email_enabled:
         return False
 
+    # 1. Brevo HTTP API (Port 443 HTTPS - works on cloud hosts without SMTP port restrictions)
+    if settings.brevo_api_key:
+        def _send_brevo():
+            payload = json.dumps({
+                "sender": {"name": "GlowCare", "email": settings.smtp_from or "glowcare20262gmail.com@gmail.com"},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "textContent": body,
+            }).encode("utf-8")
+            request = urllib.request.Request(
+                "https://api.brevo.com/v3/smtp/email",
+                data=payload,
+                headers={
+                    "api-key": settings.brevo_api_key,
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=15):
+                pass
+
+        try:
+            await asyncio.to_thread(_send_brevo)
+            logger.info(f"Email delivered to {to_email} via Brevo HTTP API")
+            return True
+        except Exception:
+            logger.exception("Brevo email delivery failed")
+
+    # 2. Resend HTTP API (Port 443 HTTPS - works on cloud hosts without SMTP port restrictions)
     if settings.resend_api_key and settings.email_from:
         def _send_resend():
             request = urllib.request.Request(
@@ -38,34 +67,53 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
 
         try:
             await asyncio.to_thread(_send_resend)
+            logger.info(f"Email delivered to {to_email} via Resend HTTP API")
             return True
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
             logger.exception("Resend email delivery failed")
-            return False
         except Exception:
             logger.exception("Unexpected email delivery failure")
-            return False
 
+    # 3. SMTP Delivery (Try Port 587 STARTTLS, then Port 465 SSL)
     message = EmailMessage()
     message["From"] = settings.smtp_from
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(body)
 
+    clean_password = (settings.smtp_password or "").replace(" ", "")
+
     def _send():
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
-            server.starttls()
-            if settings.smtp_username and settings.smtp_password:
-                # Google displays app passwords in groups of four characters.
-                # Spaces copied from that display are not part of the password.
-                server.login(settings.smtp_username, settings.smtp_password.replace(" ", ""))
-            server.send_message(message)
+        last_error = None
+        # Attempt 1: Port 587 (STARTTLS)
+        try:
+            with smtplib.SMTP(settings.smtp_host, 587, timeout=10) as server:
+                server.starttls()
+                if settings.smtp_username and clean_password:
+                    server.login(settings.smtp_username, clean_password)
+                server.send_message(message)
+                return True
+        except Exception as err587:
+            last_error = err587
+            logger.warning(f"SMTP Port 587 failed ({err587}); trying Port 465 SSL...")
+
+        # Attempt 2: Port 465 (SSL)
+        try:
+            with smtplib.SMTP_SSL(settings.smtp_host, 465, timeout=10) as server:
+                if settings.smtp_username and clean_password:
+                    server.login(settings.smtp_username, clean_password)
+                server.send_message(message)
+                return True
+        except Exception as err465:
+            last_error = err465
+            logger.warning(f"SMTP Port 465 failed ({err465})")
+
+        raise last_error
 
     try:
         await asyncio.to_thread(_send)
+        logger.info(f"Email delivered to {to_email} via SMTP")
         return True
     except Exception:
-        # Keep credentials out of the log, but retain the real provider error
-        # in Render so failed OTP delivery is diagnosable.
         logger.exception("SMTP email delivery failed")
         return False

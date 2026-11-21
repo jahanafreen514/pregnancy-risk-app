@@ -52,10 +52,8 @@ const ForgotPassword = () => {
       if (response.ok) {
         setOtpSent(true);
         setStep(2);
-        if (data.demo_otp) {
-          setOtp(data.demo_otp);
-        }
-        setSuccess(data.message || "OTP sent. Please check your inbox.");
+        setOtp("");
+        setSuccess(data.message || "OTP sent to your email. Please check your inbox.");
       } else {
         setError(extractError(data.detail, "Unable to send OTP."));
       }
