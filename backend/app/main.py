@@ -68,9 +68,24 @@ app = FastAPI(
 # CORS
 # ==========================================
 
+cors_origins = [
+    origin.strip()
+    for origin in settings.cors_origin_list
+    if origin.strip()
+]
+default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://pregnancy-risk-app-olive.vercel.app",
+]
+for origin in default_origins:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
+    allow_origins=cors_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

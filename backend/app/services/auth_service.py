@@ -11,13 +11,20 @@ from app.schemas.user_schema import (
 )
 
 
+def normalize_email(email: str) -> str:
+    """Store and query email addresses in one canonical form."""
+    return str(email).strip().lower()
+
+
 async def register(
     payload: UserRegister
 ) -> User:
 
 
+    email = normalize_email(payload.email)
+
     existing = await User.find_one(
-        User.email == payload.email.lower()
+        User.email == email
     )
 
 
@@ -41,7 +48,7 @@ async def register(
 
     user = User(
         name=payload.name,
-        email=payload.email.lower(),
+        email=email,
         password_hash=hash_password(payload.password),
         role=payload.role,
         country_code=payload.countryCode,
@@ -63,7 +70,7 @@ async def login(
 ):
 
     user = await User.find_one(
-        User.email == payload.email.lower()
+        User.email == normalize_email(payload.email)
     )
 
 

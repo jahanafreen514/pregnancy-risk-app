@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     mongodb_url: str
     secret_key: str
     access_token_expire_minutes: int = 1440
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://pregnancy-risk-app-olive.vercel.app"
     smtp_host: str | None = None
     smtp_port: int = 587
     smtp_username: str | None = None
