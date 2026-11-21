@@ -3,22 +3,15 @@ import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
   FaBaby,
-  FaStethoscope,
   FaShieldAlt,
   FaChartLine,
   FaBell,
   FaUserMd,
   FaCalendarAlt,
   FaClipboardList,
-  FaLightbulb,
   FaRocket,
-  FaUsers,
-  FaCheckCircle,
   FaArrowRight,
   FaRobot,
-  FaDatabase,
-  FaCloud,
-  FaMobile,
   FaShieldVirus,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
@@ -259,14 +252,6 @@ const FeatureCard = ({ icon, title, description }) => (
     </div>
     <h4 className="font-semibold text-gray-800">{title}</h4>
     <p className="text-sm text-gray-500 mt-1">{description}</p>
-  </div>
-);
-
-const TechCard = ({ icon, title, description }) => (
-  <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 text-center border border-pink-100/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-    <div className="text-3xl text-pink-500 mb-2 flex justify-center">{icon}</div>
-    <h4 className="font-semibold text-gray-800 text-sm">{title}</h4>
-    <p className="text-xs text-gray-500 mt-1">{description}</p>
   </div>
 );
 

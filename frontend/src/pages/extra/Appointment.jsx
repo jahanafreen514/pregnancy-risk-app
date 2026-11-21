@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
   FaFileMedical,
-  FaStethoscope,
   FaBaby,
   FaShieldAlt,
   FaNotesMedical,
@@ -19,16 +18,11 @@ import {
   FaVideo,
   FaUserMd,
   FaCalendarCheck,
-  FaClipboardList,
   FaHospital,
   FaTimes,
-  FaUserCircle,
-  FaPhone,
-  FaEnvelope,
   FaSpinner,
   FaStar,
   FaTrash,
-  FaEdit,
   FaCheck,
 } from "react-icons/fa";
 import bg from "../../assets/images/bg.png";
@@ -239,25 +233,6 @@ function Appointments() {
     );
   }
 };
-
-  // Update appointment status (for doctor - this would be called from doctor dashboard)
-  const updateAppointmentStatus = (requestId, newStatus) => {
-    const updatedRequests = doctorRequests.map(req => 
-      req.id === requestId 
-        ? { ...req, status: newStatus, updatedAt: new Date().toISOString() } 
-        : req
-    );
-    setDoctorRequests(updatedRequests);
-    
-    // Update in localStorage
-    const allRequests = JSON.parse(localStorage.getItem("doctorAppointmentRequests")) || [];
-    const updated = allRequests.map(req => 
-      req.id === requestId 
-        ? { ...req, status: newStatus, updatedAt: new Date().toISOString() } 
-        : req
-    );
-    localStorage.setItem("doctorAppointmentRequests", JSON.stringify(updated));
-  };
 
   // Cancel appointment (user)
   const cancelAppointment = async (requestId) => {

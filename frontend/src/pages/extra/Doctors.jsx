@@ -371,4 +371,4 @@ function DoctorsList() {
   );
 }
 
-export default Doctors;
+export default DoctorsList;
