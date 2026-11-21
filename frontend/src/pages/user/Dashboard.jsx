@@ -1,7 +1,7 @@
 import React from "react";
 import { apiUrl } from "../../config/runtime";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import heroMother from "../../assets/images/hero-mother.png";
 import bg from "../../assets/images/bg.png";
 import UserSidebar from "../../components/UserSidebar";
@@ -16,7 +16,6 @@ import {
   FaNotesMedical,
   FaLightbulb,
   FaChartLine,
-  FaStethoscope,
   FaCalendarAlt,
   FaArrowRight,
   FaClock,
@@ -35,22 +34,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
-/* SAMPLE DATA */
-const healthData = [
-  { day: "Mon", heart: 72 },
-  { day: "Tue", heart: 75 },
-  { day: "Wed", heart: 78 },
-  { day: "Thu", heart: 74 },
-  { day: "Fri", heart: 80 },
-  { day: "Sat", heart: 77 },
-];
-
-const pieData = [
-  { name: "Stable", value: 70 },
-  { name: "Risk", value: 20 },
-  { name: "Alert", value: 10 },
-];
 
 const COLORS = ["#f472b6", "#7dd3fc", "#fbcfe8"];
 
@@ -82,7 +65,25 @@ const Dashboard = () => {
   const [chartHealthData, setChartHealthData] = useState([]);
   const [riskPieData, setRiskPieData] = useState([]);
 
-  const loadDashboardData = () => {
+  const calculateHealthScore = useCallback((risk, water, meds) => {
+    let score = 0;
+    if (risk) {
+      if (risk.risk === "High") {
+        score = 100 - (risk.score || 0) * 0.7;
+      } else if (risk.risk === "Moderate" || risk.risk === "Medium") {
+        score = 100 - (risk.score || 0) * 0.4;
+      } else if (risk.risk === "Low") {
+        score = 100 - (risk.score || 0) * 0.2;
+      }
+    }
+    if (water < 6) score -= 5;
+    if (water > 8) score += 3;
+    const takenMeds = meds?.filter(m => m.taken).length || 0;
+    if (takenMeds > 0) score += 2;
+    setHealthScore(Math.min(100, Math.max(0, Math.round(score))));
+  }, []);
+
+  const loadDashboardData = useCallback(() => {
     // Load user
     const user = JSON.parse(localStorage.getItem("currentUser"));
     if (user) setCurrentUser(user);
@@ -100,10 +101,12 @@ const Dashboard = () => {
     setRiskData(savedRisk);
 
     // Load water intake
-    setWater(Number(localStorage.getItem("waterIntake")) || 0);
+    const currentWater = Number(localStorage.getItem("waterIntake")) || 0;
+    setWater(currentWater);
 
     // Load medications
-    setMedicines(JSON.parse(localStorage.getItem("medications")) || []);
+    const currentMeds = JSON.parse(localStorage.getItem("medications")) || [];
+    setMedicines(currentMeds);
 
     // Load heart rate
     const hr = JSON.parse(localStorage.getItem("heartRate")) || 78;
@@ -129,7 +132,7 @@ const Dashboard = () => {
             const liveRisk = { risk: latest.risk_level, score: latest.risk_score, confidence: 0, symptoms: latest.symptoms || [], riskFactors: [], vitals: { heartRate: latest.heart_rate, bpSystolic: latest.bp_systolic, bpDiastolic: latest.bp_diastolic, sugar: latest.sugar, temperature: latest.temperature, week: latest.pregnancy_week } };
             setRiskData(liveRisk);
             setHeartRate(Number(latest.heart_rate) || 0);
-            calculateHealthScore(liveRisk, water, medicines);
+            calculateHealthScore(liveRisk, currentWater, currentMeds);
           }
           setChartHealthData((data.history || []).map((item, index) => ({ day: `Check ${index + 1}`, heart: Number(item.heart_rate) || 0 })));
           const counts = (data.history || []).reduce((result, item) => ({ ...result, [item.risk_level]: (result[item.risk_level] || 0) + 1 }), {});
@@ -140,32 +143,14 @@ const Dashboard = () => {
     }
 
     // Calculate health score
-    calculateHealthScore(savedRisk, water, medicines);
-  };
-
-  const calculateHealthScore = (risk, water, meds) => {
-    let score = 0;
-    if (risk) {
-      if (risk.risk === "High") {
-        score = 100 - (risk.score || 0) * 0.7;
-      } else if (risk.risk === "Moderate" || risk.risk === "Medium") {
-        score = 100 - (risk.score || 0) * 0.4;
-      } else if (risk.risk === "Low") {
-        score = 100 - (risk.score || 0) * 0.2;
-      }
-    }
-    if (water < 6) score -= 5;
-    if (water > 8) score += 3;
-    const takenMeds = meds?.filter(m => m.taken).length || 0;
-    if (takenMeds > 0) score += 2;
-    setHealthScore(Math.min(100, Math.max(0, Math.round(score))));
-  };
+    calculateHealthScore(savedRisk, currentWater, currentMeds);
+  }, [calculateHealthScore]);
 
   useEffect(() => {
     loadDashboardData();
     const interval = setInterval(loadDashboardData, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadDashboardData]);
 
   const getRiskColor = (risk) => {
     switch (risk) {

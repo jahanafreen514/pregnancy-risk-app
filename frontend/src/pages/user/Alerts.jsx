@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   FaHeartbeat,
   FaFileMedical,
-  FaStethoscope,
   FaBaby,
   FaNotesMedical,
   FaLightbulb,
@@ -13,8 +12,6 @@ import {
   FaUser,
   FaBell,
   FaShieldAlt,
-  FaUserCircle,
-  FaCog,
 } from "react-icons/fa";
 import {
   Bell,
@@ -61,99 +58,6 @@ function Alerts() {
         time: item.created_at ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium", hour12: true }).format(new Date(item.created_at.endsWith?.("Z") || /[+-]\d\d:\d\d$/.test(item.created_at) ? item.created_at : `${item.created_at}Z`)) : "Just now",
       })));
     } catch (error) { console.error("Notification loading error", error); setAlerts([]); }
-  };
-
-  const loadDemoAlerts = () => {
-    const riskData =
-  JSON.parse(
-    localStorage.getItem(`riskData_${currentUser.email}`)
-  ) || {
-    risk: "Low",
-    score: 10,
-    confidence: 95,
-    symptoms: [],
-  };
-
-    let generatedAlerts = [];
-
-    if (riskData.risk === "High") {
-      generatedAlerts = [
-        {
-          id: 1,
-          type: "Critical",
-          riskLevel: "high",
-          title: "High Pregnancy Risk Detected",
-          message:
-            "AI analysis indicates a high pregnancy risk. Please contact your gynecologist immediately.",
-          icon: "critical",
-          status: "Unread",
-          time: "Just Now",
-        },
-        {
-          id: 2,
-          type: "Emergency",
-          riskLevel: "high",
-          title: "Monitor Baby Movement",
-          message:
-            "Your reported symptoms require continuous fetal movement monitoring.",
-          icon: "critical",
-          status: "Unread",
-          time: "5 mins ago",
-        },
-      ];
-    } else if (riskData.risk === "Medium" || riskData.risk === "Moderate") {
-      generatedAlerts = [
-        {
-          id: 1,
-          type: "Warning",
-          riskLevel: "medium",
-          title: "Monitor Blood Pressure",
-          message:
-            "Please check your blood pressure regularly and consult your doctor if it remains elevated.",
-          icon: "warning",
-          status: "Unread",
-          time: "Today",
-        },
-        {
-          id: 2,
-          type: "Reminder",
-          riskLevel: "medium",
-          title: "Increase Water Intake",
-          message:
-            "Drink at least 8–10 glasses of water today to stay hydrated.",
-          icon: "warning",
-          status: "Unread",
-          time: "Today",
-        },
-      ];
-    } else {
-      generatedAlerts = [
-        {
-          id: 1,
-          type: "Healthy",
-          riskLevel: "low",
-          title: "Pregnancy Progress is Normal",
-          message:
-            "AI prediction shows a low-risk pregnancy. Continue maintaining a healthy lifestyle.",
-          icon: "safe",
-          status: "Reviewed",
-          time: "Today",
-        },
-        {
-          id: 2,
-          type: "Reminder",
-          riskLevel: "low",
-          title: "Regular Check-up",
-          message:
-            "Continue attending your scheduled prenatal appointments.",
-          icon: "safe",
-          status: "Unread",
-          time: "Tomorrow",
-        },
-      ];
-    }
-
-    setAlerts(generatedAlerts);
   };
 
   const handleMarkReviewed = async (id) => {

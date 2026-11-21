@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { apiUrl } from "../../config/runtime";
 import {
@@ -9,14 +9,8 @@ import {
   FaCalendarAlt,
   FaWeight,
   FaHeartbeat,
-  FaUtensils,
-  FaWalking,
-  FaBed,
-  FaStethoscope,
   FaPills,
   FaShieldAlt,
-  FaClipboardList,
-  FaArrowRight,
   FaCheckCircle,
   FaClock,
   FaBell,
@@ -24,14 +18,7 @@ import {
   FaTrash,
   FaEdit,
   FaChartLine,
-  FaWater,
-  FaAppleAlt,
-  FaDumbbell,
   FaHeart,
-  FaMoon,
-  FaSun,
-  FaSmile,
-  FaUserCircle,
   FaLightbulb,
   FaSpinner,
   FaTint,
@@ -39,7 +26,6 @@ import {
   FaPlay,
   FaPause,
   FaRedo,
-  FaThermometerHalf,
   FaCamera,
   FaStop,
 } from "react-icons/fa";
@@ -74,7 +60,6 @@ const PregnancyToolkit = () => {
   const valuesRef = useRef([]);
   const peaksRef = useRef([]);
   const lastPeakTimeRef = useRef(0);
-  const isProcessingRef = useRef(false);
   const stopTimeoutRef = useRef(null);
 
   // ===== WATER INTAKE =====
@@ -117,8 +102,23 @@ const PregnancyToolkit = () => {
   const [riskLevel, setRiskLevel] = useState("Low");
   const [userWeight, setUserWeight] = useState("68 kg");
 
+  // ===== CALCULATE HEALTH SCORE =====
+  const calculateHealthScore = useCallback((risk, score) => {
+    let baseScore = 100;
+    
+    if (risk === "High") {
+      baseScore = 100 - (score || 0) * 0.7;
+    } else if (risk === "Moderate" || risk === "Medium") {
+      baseScore = 100 - (score || 0) * 0.4;
+    } else if (risk === "Low") {
+      baseScore = 100 - (score || 0) * 0.2;
+    }
+    
+    return Math.min(100, Math.max(0, Math.round(baseScore)));
+  }, []);
+
   // ===== LOAD ALL DATA =====
-  const loadAllData = () => {
+  const loadAllData = useCallback(() => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
     
     // 1. Load week from localStorage (set by Symptoms page)
@@ -155,24 +155,9 @@ const PregnancyToolkit = () => {
     // 4. Load heart rate
     const hr = Number(localStorage.getItem("heartRate")) || 0;
     if (hr > 0) setHeartRate(hr);
-  };
+  }, [calculateHealthScore]);
 
-  // ===== CALCULATE HEALTH SCORE =====
-  const calculateHealthScore = (risk, score) => {
-    let baseScore = 100;
-    
-    if (risk === "High") {
-      baseScore = 100 - (score || 0) * 0.7;
-    } else if (risk === "Moderate" || risk === "Medium") {
-      baseScore = 100 - (score || 0) * 0.4;
-    } else if (risk === "Low") {
-      baseScore = 100 - (score || 0) * 0.2;
-    }
-    
-    return Math.min(100, Math.max(0, Math.round(baseScore)));
-  };
-
-  const refreshPregnancyTiming = async () => {
+  const refreshPregnancyTiming = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
@@ -184,7 +169,7 @@ const PregnancyToolkit = () => {
         localStorage.setItem("pregnancyWeek", String(week));
       }
     } catch (error) { console.error("Unable to refresh pregnancy timing", error); }
-  };
+  }, []);
 
   // ===== GET RISK COLOR =====
   const getRiskColor = (risk) => {
@@ -258,7 +243,6 @@ const PregnancyToolkit = () => {
     canvas.width = 160;
     canvas.height = 120;
     
-    let frameCount = 0;
     const values = [];
     const peaks = [];
     let lastPeakTime = 0;
@@ -341,8 +325,6 @@ const PregnancyToolkit = () => {
             }
           }
         }
-        
-        frameCount++;
       } catch (e) {
         console.error("Frame processing error:", e);
       }
@@ -698,7 +680,7 @@ const PregnancyToolkit = () => {
     const interval = setInterval(() => { loadAllData(); refreshPregnancyTiming(); }, 60000);
     window.addEventListener("pregnancyTimingUpdated", refreshPregnancyTiming);
     return () => { clearInterval(interval); window.removeEventListener("pregnancyTimingUpdated", refreshPregnancyTiming); };
-  }, []);
+  }, [loadAllData, refreshPregnancyTiming]);
 
   return (
     <div
@@ -882,10 +864,30 @@ const PregnancyToolkit = () => {
                       />
                     </div>
                   </div>
-                  <div className="bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-2xl p-4">
+                  <div 
+                    onClick={() => setShowMoodSelector(prev => !prev)} 
+                    className="bg-gradient-to-r from-purple-50 to-purple-100/50 rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all relative"
+                  >
                     <p className="text-sm text-gray-500">Current Mood</p>
                     <p className="text-lg font-bold text-gray-800">{getMoodEmoji(mood)} {mood}</p>
                     <p className="text-xs text-gray-400">Tap mood to change</p>
+                    {showMoodSelector && (
+                      <div className="absolute top-full left-0 mt-2 z-20 bg-white shadow-xl rounded-2xl p-3 border border-purple-100 flex gap-2 flex-wrap">
+                        {["Happy", "Calm", "Tired", "Anxious", "Excited", "Relaxed"].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMoodValue(m);
+                            }}
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-50 hover:bg-purple-100 text-purple-700 transition-colors"
+                          >
+                            {getMoodEmoji(m)} {m}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1006,7 +1008,7 @@ const PregnancyToolkit = () => {
                   <div className="flex items-center justify-center">
                     <div className="text-white text-center">
                       <FaCamera className="text-4xl mb-2 animate-pulse mx-auto" />
-                      <p className="text-sm">📸 Camera active</p>
+                      <p className="text-sm">📸 {isCameraReady ? "Camera active" : "Preparing camera..."}</p>
                       <p className="text-xs text-gray-400 mt-1">Place finger on lens & hold steady</p>
                       <p className="text-xs text-green-400 mt-2">
                         {heartRate > 0 ? `❤️ ${heartRate} BPM detected` : "Waiting for signal..."}
