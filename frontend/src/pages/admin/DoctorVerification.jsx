@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { apiUrl } from "../../config/runtime";
+import AdminLayout from "./AdminLayout";
 import {
   FaUserMd,
   FaCheckCircle,
@@ -11,8 +12,7 @@ import {
   FaRedoAlt,
   FaAward,
   FaBuilding,
-  FaIdCard,
-  FaClock
+  FaIdCard
 } from "react-icons/fa";
 
 function DoctorVerification() {
@@ -116,11 +116,10 @@ function DoctorVerification() {
     if (filter === "needs_review") return doc.verification_status !== "approved" && doc.verification_status !== "rejected";
     return doc.verification_status === filter;
   });
-    return doc.verification_status === filter;
-  });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto min-h-screen">
+    <AdminLayout activeTab="verification">
+      <div className="space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-pink-100">
         <div>
@@ -435,7 +434,8 @@ function DoctorVerification() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
 

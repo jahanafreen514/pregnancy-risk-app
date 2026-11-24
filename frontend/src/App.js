@@ -61,6 +61,7 @@ import AdminFeedback from "./pages/admin/AdminFeedback";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminDoctors from "./pages/admin/AdminDoctors";
+import DoctorVerification from "./pages/admin/DoctorVerification";
 import AdminSystemStatus from "./pages/admin/AdminSystemStatus";
 
 
@@ -377,7 +378,7 @@ function AppLayout({ darkMode, setDarkMode }) {
 
             <Route
               path="/admin/doctor-verification"
-              element={<RoleRoute roles={["admin"]}><Navigate to="/admin-doctors" replace /></RoleRoute>}
+              element={<RoleRoute roles={["admin"]}><DoctorVerification /></RoleRoute>}
             />
 
 

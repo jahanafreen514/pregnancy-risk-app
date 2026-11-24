@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CheckCircle, Clock, Search, RefreshCw, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CheckCircle, Clock, Search, RefreshCw, XCircle, ShieldCheck } from "lucide-react";
 import AdminLayout from "./AdminLayout";
 import { apiUrl } from "../../config/runtime";
 
@@ -60,7 +61,24 @@ export default function AdminDoctors() {
   const totals = { total: doctors.length, approved: doctors.filter((d) => verificationStatus(d) === "approved").length, pending: doctors.filter((d) => verificationStatus(d) === "pending").length };
 
   return <AdminLayout activeTab="doctors"><div className="space-y-6">
-    <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-xl backdrop-blur-2xl"><div><h1 className="text-3xl font-extrabold text-slate-800">Doctor verification</h1><p className="mt-1 text-sm text-slate-500">Review both submitted documents before approving a doctor.</p></div><button onClick={loadDoctors} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 px-4 py-2 font-semibold text-white"><RefreshCw className="h-4 w-4" />Refresh</button></header>
+    <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-xl backdrop-blur-2xl">
+      <div>
+        <h1 className="text-3xl font-extrabold text-slate-800">Doctor Directory & Approvals</h1>
+        <p className="mt-1 text-sm text-slate-500">Review submitted credentials and verified practitioner records.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          to="/admin/doctor-verification"
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 via-pink-500 to-rose-400 px-4 py-2 font-bold text-white shadow-md hover:shadow-lg transition-all"
+        >
+          <ShieldCheck className="h-4 w-4" />
+          AI Verification Hub
+        </Link>
+        <button onClick={loadDoctors} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-sky-400 px-4 py-2 font-semibold text-white">
+          <RefreshCw className="h-4 w-4" />Refresh
+        </button>
+      </div>
+    </header>
     <div className="grid gap-4 sm:grid-cols-3">{[["Total", totals.total, "text-slate-800"], ["Approved", totals.approved, "text-green-600"], ["Pending", totals.pending, "text-amber-600"]].map(([label, value, color]) => <div key={label} className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-lg"><p className="text-sm text-slate-500">{label}</p><p className={`mt-1 text-3xl font-bold ${color}`}>{value}</p></div>)}</div>
     <div className="flex flex-wrap gap-3 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-lg"><label className="relative min-w-60 flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, hospital, specialty..." className="w-full rounded-xl border border-pink-100 py-2 pl-10 pr-3" /></label><select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-xl border border-pink-100 bg-white px-3"><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="not_uploaded">Documents missing</option></select></div>
     {message && <p className="rounded-xl bg-sky-50 p-3 text-sm text-sky-700">{message}</p>}
