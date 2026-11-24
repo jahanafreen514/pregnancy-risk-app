@@ -145,7 +145,7 @@ const handleSubmit = async (e) => {
 
   return (
     <div
-  className="relative h-screen overflow-hidden bg-cover bg-center flex items-center justify-center px-4 sm:px-6"
+      className="relative min-h-screen overflow-y-auto bg-cover bg-center flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12"
       style={{
         backgroundImage: `url(${bg})`,
       }}

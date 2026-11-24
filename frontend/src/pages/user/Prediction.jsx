@@ -696,7 +696,7 @@ const saved = {
 
       <div
 
-        className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8"
+        className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 lg:ml-64 min-h-screen"
 
       >
 

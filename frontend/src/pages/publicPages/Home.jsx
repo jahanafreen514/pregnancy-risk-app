@@ -24,17 +24,17 @@ const Home = () => {
       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
 
       {/* Floating Blobs */}
-      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-pink-300 blur-[140px] opacity-20 animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
-      <div className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "1s" }}></div>
+      <div className="pointer-events-none absolute top-0 left-0 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-300 blur-[100px] sm:blur-[140px] opacity-20 animate-pulse"></div>
+      <div className="pointer-events-none absolute bottom-0 right-0 w-80 sm:w-[500px] h-80 sm:h-[500px] rounded-full bg-sky-300 blur-[100px] sm:blur-[150px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
+      <div className="pointer-events-none absolute top-1/2 left-1/2 w-64 sm:w-80 h-64 sm:h-80 rounded-full bg-pink-200 blur-[90px] sm:blur-[120px] opacity-10 animate-pulse" style={{ animationDelay: "1s" }}></div>
 
       <div className="relative z-10">
         {/* ========== HERO SECTION ========== */}
-        <section className="max-w-7xl mx-auto px-6 pt-20 pb-12">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 lg:pt-32 pb-10 sm:pb-12">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* LEFT CONTENT */}
-            <div>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1]">
+            <div className="text-center lg:text-left">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.15]">
                 <span className="text-gray-800">Smart Pregnancy</span>
                 <br />
                 <span className="bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 bg-clip-text text-transparent">
@@ -42,17 +42,17 @@ const Home = () => {
                 </span>
               </h1>
 
-              <p className="mt-6 text-gray-600 text-lg leading-relaxed max-w-lg">
+              <p className="mt-4 sm:mt-6 text-gray-600 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0">
                 Detect risks early, track maternal health in real-time, and
                 connect with doctors instantly using ML-powered insights designed
                 for safe motherhood.
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-wrap gap-4 mt-8">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center lg:justify-start">
                 <Link
                   to="/starting"
-                  className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 text-white font-bold text-lg shadow-xl hover:shadow-pink-300 hover:scale-[1.03] active:scale-95 transition-all duration-300"
+                  className="group flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 text-white font-bold text-base sm:text-lg shadow-xl hover:shadow-pink-300 hover:scale-[1.03] active:scale-95 transition-all duration-300"
                 >
                   Get Started
                   <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
@@ -60,7 +60,7 @@ const Home = () => {
 
                 <Link
                   to="/about"
-                  className="flex items-center gap-2 px-8 py-4 rounded-2xl border-2 border-pink-200/50 bg-white/60 backdrop-blur-sm font-semibold text-gray-700 hover:bg-white hover:border-pink-300 hover:shadow-xl transition-all duration-300"
+                  className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl border-2 border-pink-200/50 bg-white/60 backdrop-blur-sm font-semibold text-gray-700 hover:bg-white hover:border-pink-300 hover:shadow-xl transition-all duration-300 text-base sm:text-lg"
                 >
                   <FaPlayCircle className="text-pink-500" />
                   Learn More
@@ -68,39 +68,39 @@ const Home = () => {
               </div>
 
               {/* Stats */}
-              <div className="mt-12 grid grid-cols-3 gap-4">
+              <div className="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
                     Screened
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">with clinician follow-up</div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">with clinician follow-up</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
                     24-feature
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">XGBoost screening</div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">XGBoost screening</div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 text-center border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="text-2xl font-extrabold text-transparent bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text">
                     24/7
                   </div>
-                  <div className="text-sm text-gray-500 font-medium mt-1">Monitoring</div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium mt-1">Monitoring</div>
                 </div>
               </div>
             </div>
 
-            {/* RIGHT - Hero Image - Increased Size */}
-            <div className="relative flex justify-center lg:justify-end">
-              <div className="absolute w-[500px] h-[500px] bg-pink-300 blur-[120px] opacity-20 rounded-full animate-pulse"></div>
-              <div className="absolute w-[350px] h-[350px] bg-sky-300 blur-[100px] opacity-10 rounded-full animate-pulse" style={{ animationDelay: "1s" }}></div>
+            {/* RIGHT - Hero Image */}
+            <div className="relative flex justify-center lg:justify-end mt-4 lg:mt-0">
+              <div className="pointer-events-none absolute w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-pink-300 blur-[100px] opacity-20 rounded-full animate-pulse"></div>
+              <div className="pointer-events-none absolute w-[220px] sm:w-[350px] h-[220px] sm:h-[350px] bg-sky-300 blur-[80px] opacity-10 rounded-full animate-pulse" style={{ animationDelay: "1s" }}></div>
 
-              <div className="relative group">
-                <div className="absolute -inset-6 rounded-[50px] bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
+              <div className="relative group max-w-xs sm:max-w-md lg:max-w-xl">
+                <div className="absolute -inset-4 sm:-inset-6 rounded-[40px] sm:rounded-[50px] bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
                 <img
                   src={hero}
                   alt="Pregnant mother with glowing care"
-                  className="relative w-[95%] max-w-xl mx-auto hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
+                  className="relative w-full mx-auto hover:scale-105 transition-transform duration-500 drop-shadow-2xl"
                 />
               </div>
             </div>
@@ -108,20 +108,20 @@ const Home = () => {
         </section>
 
         {/* ========== FEATURES SECTION ========== */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-800">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-800">
               Everything You Need for{" "}
               <span className="bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text text-transparent">
                 Safe Pregnancy
               </span>
             </h2>
-            <p className="text-gray-500 text-lg mt-3">
+            <p className="text-gray-500 text-base sm:text-lg mt-3">
               One platform. Complete maternal health monitoring.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <Feature 
               icon={<FaUserMd className="text-2xl" />}
               title="Doctor Support" 
@@ -146,11 +146,11 @@ const Home = () => {
         </section>
 
         {/* ========== STORY / WHY SECTION ========== */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-[40px] bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-xl opacity-30"></div>
+            <div className="absolute -inset-1 rounded-3xl sm:rounded-[40px] bg-gradient-to-r from-pink-300 via-pink-200 to-sky-300 blur-xl opacity-30"></div>
             
-            <div className="relative bg-white/80 backdrop-blur-2xl rounded-[40px] p-10 md:p-14 border border-white/70 shadow-2xl">
+            <div className="relative bg-white/80 backdrop-blur-2xl rounded-3xl sm:rounded-[40px] p-6 sm:p-10 md:p-14 border border-white/70 shadow-2xl">
               <div className="flex items-start gap-6">
                 <div className="hidden md:block">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -159,7 +159,7 @@ const Home = () => {
                 </div>
                 
                 <div className="flex-1">
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-800">
                     Why{" "}
                     <span className="bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text text-transparent">
                       GlowCare
@@ -167,7 +167,7 @@ const Home = () => {
                     Exists
                   </h2>
                   
-                  <div className="mt-6 space-y-4 text-gray-600 leading-relaxed text-lg">
+                  <div className="mt-4 sm:mt-6 space-y-4 text-gray-600 leading-relaxed text-base sm:text-lg">
                     <p>
                       Pregnancy complications often develop silently. GlowCare uses ML
                       to continuously monitor health signals and detect early warning
@@ -180,18 +180,18 @@ const Home = () => {
                     </p>
                   </div>
 
-                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">
-                      <Search className="text-xl" />
-                      <span className="font-medium text-gray-700">Early Detection</span>
+                      <Search className="text-xl text-pink-500" />
+                      <span className="font-semibold text-gray-700 text-sm sm:text-base">Early Detection</span>
                     </div>
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">
-                      <Bot className="text-xl" />
-                      <span className="font-medium text-gray-700">ML-Powered</span>
+                      <Bot className="text-xl text-sky-500" />
+                      <span className="font-semibold text-gray-700 text-sm sm:text-base">ML-Powered</span>
                     </div>
                     <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm rounded-xl px-4 py-3 border border-pink-100/50">
                       <span className="text-xl">💚</span>
-                      <span className="font-medium text-gray-700">24/7 Support</span>
+                      <span className="font-semibold text-gray-700 text-sm sm:text-base">24/7 Support</span>
                     </div>
                   </div>
                 </div>
@@ -201,21 +201,21 @@ const Home = () => {
         </section>
 
         {/* ========== CTA BANNER ========== */}
-        <section className="max-w-7xl mx-auto px-6 py-12 pb-20">
-          <div className="relative overflow-hidden rounded-[40px] bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 p-12 text-center shadow-2xl">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-16 sm:pb-20">
+          <div className="relative overflow-hidden rounded-3xl sm:rounded-[40px] bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 p-8 sm:p-12 text-center shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
             
             <div className="relative z-10">
-              <h3 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-3 sm:mb-4">
                 🤰 Ready to Start Your Journey?
               </h3>
-              <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
+              <p className="text-white/90 text-sm sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto">
                 Join thousands of mothers who trust GlowCare for their maternal health monitoring.
               </p>
               <Link
                 to="/starting"
-                className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-white text-pink-500 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-3 px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl bg-white text-pink-600 font-bold text-base sm:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 w-full sm:w-auto"
               >
                 Get Started Now 🚀
                 <FaArrowRight />

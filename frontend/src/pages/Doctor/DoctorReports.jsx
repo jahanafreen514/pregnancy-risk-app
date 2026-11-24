@@ -464,7 +464,7 @@ Generated: ${new Date().toLocaleString()}
 
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen overflow-y-auto bg-cover bg-center flex"
       style={{ backgroundImage: `url(${bg})` }}
     >
       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
@@ -537,7 +537,7 @@ Generated: ${new Date().toLocaleString()}
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 flex-1 overflow-y-auto p-6">
+      <div className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 min-h-screen">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold text-gray-800 flex gap-2 items-center">

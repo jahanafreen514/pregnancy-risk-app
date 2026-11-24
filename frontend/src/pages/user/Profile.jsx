@@ -273,7 +273,7 @@ const Profile = () => {
 
 
       {/* MAIN CONTENT - SCROLLABLE */}
-      <div className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8">
+      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 lg:ml-64 min-h-screen">
         {/* Top Bar - Sticky */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div>

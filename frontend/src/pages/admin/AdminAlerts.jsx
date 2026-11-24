@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../../components/Sidebar";
-import TopNavbar from "../../components/TopNavbar";
+import AdminLayout from "./AdminLayout";
 import Footer from "../../components/Footer";
 import { Bell, AlertTriangle, CheckCircle, Eye, Trash2, Clock } from "lucide-react";
 
@@ -59,11 +58,8 @@ function AdminAlerts() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-sky-50">
-      <Sidebar />
-      <main className="ml-72">
-        <TopNavbar />
-        <div className="p-6 space-y-6">
+    <AdminLayout activeTab="alerts">
+      <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Alerts</h1>
@@ -191,8 +187,7 @@ function AdminAlerts() {
 
           <Footer />
         </div>
-      </main>
-    </div>
+    </AdminLayout>
   );
 }
 

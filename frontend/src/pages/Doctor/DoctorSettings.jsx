@@ -93,7 +93,7 @@ const DoctorSettings = () => {
   }
 
   return (
-    <div className="relative h-screen overflow-hidden bg-cover bg-center flex" style={{ backgroundImage: `url(${bg})` }}>
+    <div className="relative min-h-screen overflow-y-auto bg-cover bg-center flex" style={{ backgroundImage: `url(${bg})` }}>
       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
       <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-pink-300 blur-[140px] opacity-20 animate-pulse"></div>
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse" style={{ animationDelay: "2s" }}></div>
@@ -137,7 +137,7 @@ const DoctorSettings = () => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative z-10 ml-64 flex-1 px-4 sm:px-6 lg:px-8 py-4 h-full overflow-y-auto">
+      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 min-h-screen overflow-y-auto">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4 z-20">
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">

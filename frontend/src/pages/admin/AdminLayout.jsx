@@ -92,10 +92,45 @@ const AdminLayout = ({ children, activeTab: propActiveTab }) => {
       <div className="fixed bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse z-0" style={{ animationDelay: "2s" }}></div>
       <div className="fixed top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse z-0" style={{ animationDelay: "1s" }}></div>
 
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle admin navigation" className="fixed left-4 top-4 z-[70] rounded-xl bg-white p-3 text-pink-600 shadow-lg lg:hidden">{sidebarOpen ? <X /> : <Menu />}</button>
-      {sidebarOpen && <button onClick={() => setSidebarOpen(false)} aria-label="Close admin navigation" className="fixed inset-0 z-[45] bg-slate-900/30 lg:hidden" />}
+      {/* Mobile & Tablet Top Bar */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-xl border-b border-pink-100/70 z-40 px-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle admin navigation"
+            className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100 flex items-center justify-center transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <Link to="/admin-dashboard" className="flex items-center gap-2.5">
+            <span className="text-xl font-extrabold bg-gradient-to-r from-pink-500 via-pink-400 to-sky-400 bg-clip-text text-transparent">
+              GlowCare
+            </span>
+            <span className="text-xs bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full">
+              Admin
+            </span>
+          </Link>
+        </div>
+
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-sky-400 flex items-center justify-center text-white font-bold text-sm shadow-md">
+          {admin?.name?.charAt(0).toUpperCase() || "A"}
+        </div>
+      </header>
+
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close admin navigation"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm lg:hidden transition-opacity"
+        />
+      )}
       {/* SIDEBAR */}
-      <div id="admin-shared-sidebar" className={`fixed left-0 top-0 h-screen w-72 bg-white/95 backdrop-blur-2xl border-r border-pink-100/50 flex flex-col z-50 overflow-y-auto transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div
+        id="admin-shared-sidebar"
+        className={`fixed left-0 top-0 h-screen w-72 bg-white/95 backdrop-blur-2xl border-r border-pink-100/50 flex flex-col z-50 overflow-y-auto transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="p-5 border-b border-pink-100/50 flex-shrink-0">
           <Link to="/admin-dashboard" className="block">
             <h1 className="text-2xl font-bold text-pink-500">GlowCare</h1>

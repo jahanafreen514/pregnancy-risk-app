@@ -46,7 +46,7 @@ const Starting = () => {
 
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex items-center justify-center p-4"
+      className="relative min-h-screen overflow-y-auto bg-cover bg-center flex items-center justify-center p-4 sm:p-6 py-8 sm:py-12"
       style={{
         backgroundImage: `url(${bg})`,
       }}

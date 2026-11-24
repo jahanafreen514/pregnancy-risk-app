@@ -36,13 +36,13 @@ const About = () => {
       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
 
       {/* Floating Blobs */}
-      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-pink-300 blur-[140px] opacity-20 animate-pulse"></div>
+      <div className="pointer-events-none absolute top-0 left-0 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-300 blur-[100px] sm:blur-[140px] opacity-20 animate-pulse"></div>
       <div
-        className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-sky-300 blur-[150px] opacity-20 animate-pulse"
+        className="pointer-events-none absolute bottom-0 right-0 w-80 sm:w-[500px] h-80 sm:h-[500px] rounded-full bg-sky-300 blur-[100px] sm:blur-[150px] opacity-20 animate-pulse"
         style={{ animationDelay: "2s" }}
       ></div>
       <div
-        className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-pink-200 blur-[120px] opacity-10 animate-pulse"
+        className="pointer-events-none absolute top-1/2 left-1/2 w-64 sm:w-80 h-64 sm:h-80 rounded-full bg-pink-200 blur-[90px] sm:blur-[120px] opacity-10 animate-pulse"
         style={{ animationDelay: "1s" }}
       ></div>
 

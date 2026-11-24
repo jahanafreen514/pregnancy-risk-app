@@ -637,8 +637,8 @@ return(
 
 className="
 relative
-h-screen
-overflow-hidden
+min-h-screen
+overflow-y-auto
 bg-cover
 bg-center
 flex
@@ -787,9 +787,14 @@ shadow-lg
 <div className="
 relative
 z-10
-ml-64
 flex-1
-p-6
+px-4
+sm:px-6
+lg:px-8
+pt-20
+lg:pt-6
+pb-12
+min-h-screen
 overflow-y-auto
 ">
 

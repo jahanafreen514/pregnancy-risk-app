@@ -177,7 +177,7 @@ const EditProfile = () => {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen overflow-y-auto bg-cover bg-center flex py-8 sm:py-12"
       style={{
         backgroundImage: `url(${bg})`,
       }}

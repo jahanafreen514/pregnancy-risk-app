@@ -243,7 +243,7 @@ const Dashboard = () => {
       </div>
 
       {/* MAIN CONTENT - SCROLLABLE */}
-      <div className="relative z-10 flex-1 px-4 py-4 sm:px-6 lg:ml-64 lg:px-8">
+      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 lg:ml-64 min-h-screen">
         
         {/* Top Bar */}
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-white/30 backdrop-blur-sm py-3 px-4 rounded-2xl -mx-4">
@@ -378,7 +378,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-8 bg-white/10 backdrop-blur-sm rounded-2xl px-6 py-3">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-8 bg-white/10 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-3">
                 <div className="text-center">
                   <p className="text-sm opacity-80">Risk Score</p>
                   <p className="text-3xl font-bold">{riskData.score}%</p>

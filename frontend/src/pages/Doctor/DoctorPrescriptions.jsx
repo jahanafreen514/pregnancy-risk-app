@@ -791,7 +791,7 @@ x=>x.status==="completed"
 ).length;
   return (
     <div
-      className="relative h-screen overflow-hidden bg-cover bg-center flex"
+      className="relative min-h-screen overflow-y-auto bg-cover bg-center flex"
       style={{
         backgroundImage: `url(${bg})`,
       }}
@@ -952,7 +952,7 @@ x=>x.status==="completed"
       {/* MAIN */}
 
 
-      <main className="relative z-10 flex-1 px-6 py-5 overflow-y-auto">
+      <main className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pt-20 lg:pt-6 pb-12 overflow-y-auto min-h-screen">
 
 
         <header className="flex justify-between items-center mb-6">
