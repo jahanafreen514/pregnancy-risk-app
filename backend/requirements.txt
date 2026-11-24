@@ -21,6 +21,8 @@ joblib
 pandas
 xgboost
 
-# OCR
+# OCR & AI Document Verification
 pytesseract
 Pillow
+opencv-python-headless
+rapidfuzz

@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-11-24T20:55:00Z",
+  "benchmark_samples": 46,
+  "document_validity": {
+    "accuracy": 0.7826,
+    "precision": 1.0,
+    "recall": 0.6667,
+    "f1_score": 0.8,
+    "confusion_matrix": {
+      "true_positive": 20,
+      "false_positive": 0,
+      "true_negative": 16,
+      "false_negative": 10
+    }
+  },
+  "blur_detection": {
+    "accuracy": 0.7391,
+    "true_positive": 10,
+    "false_positive": 12
+  },
+  "information_extraction": {
+    "name_match_accuracy": 1.0,
+    "license_format_accuracy": 0.8,
+    "qualifications_accuracy": 1.0
+  },
+  "status": "TRAINING_AND_BENCHMARK_SUCCESS"
+}

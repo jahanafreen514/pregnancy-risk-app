@@ -101,11 +101,11 @@ function Symptoms() {
 
   const updateField = (field, value) => {
 
-    setForm((prev)=>({
+    setForm((prev) => ({
 
       ...prev,
 
-      [field]:value
+      [field]: value
 
     }));
 
@@ -115,22 +115,22 @@ function Symptoms() {
 
 
 
-  const toggleSymptom = (symptom)=>{
+  const toggleSymptom = (symptom) => {
 
 
-    if(form.symptoms.includes(symptom)){
+    if (form.symptoms.includes(symptom)) {
 
 
       updateField(
         "symptoms",
         form.symptoms.filter(
-          (item)=>item!==symptom
+          (item) => item !== symptom
         )
       );
 
 
     }
-    else{
+    else {
 
 
       updateField(
@@ -151,10 +151,10 @@ function Symptoms() {
 
 
 
-  const sendDoctorNotification = (symptoms)=>{
+  const sendDoctorNotification = (symptoms) => {
 
 
-    if(!user) return;
+    if (!user) return;
 
 
     const notifications =
@@ -166,17 +166,17 @@ function Symptoms() {
 
     notifications.push({
 
-      patient:user.name,
+      patient: user.name,
 
-      email:user.email,
+      email: user.email,
 
-      symptoms:symptoms,
+      symptoms: symptoms,
 
       message:
-      "New symptoms reported by patient",
+        "New symptoms reported by patient",
 
       time:
-      new Date().toLocaleString()
+        new Date().toLocaleString()
 
     });
 
@@ -198,102 +198,102 @@ function Symptoms() {
 
   // BACKEND ML PREDICTION API
 
-  const analyzeRisk = async()=>{
+  const analyzeRisk = async () => {
 
 
-    try{
+    try {
 
 
       setIsLoading(true);
 
 
-    const requiredFields = [
-      ["Age", form.age], ["Pregnancy week", form.week], ["Weight", form.weight],
-      ["Height", form.height], ["Systolic BP", form.bpSystolic],
-      ["Diastolic BP", form.bpDiastolic], ["Heart rate", form.heartRate],
-      ["Blood sugar", form.sugar], ["Temperature", form.temperature],
-      ["Baby count", form.babyCount], ["Baby weight", form.babyWeight],
-      ["Baby heart rate", form.babyHeartRate], ["Cervical length", form.cervicalLength],
-      ["Previous complications", form.previousComplications],
-      ["Pre-existing diabetes", form.preexistingDiabetes],
-      ["Gestational diabetes", form.gestationalDiabetes], ["Mental health support", form.mentalHealth],
-    ];
-    const missing = requiredFields.find(([, value]) => value === "" || value === null || value === undefined);
-    if (missing) throw new Error(`Please complete: ${missing[0]}.`);
+      const requiredFields = [
+        ["Age", form.age], ["Pregnancy week", form.week], ["Weight", form.weight],
+        ["Height", form.height], ["Systolic BP", form.bpSystolic],
+        ["Diastolic BP", form.bpDiastolic], ["Heart rate", form.heartRate],
+        ["Blood sugar", form.sugar], ["Temperature", form.temperature],
+        ["Baby count", form.babyCount], ["Baby weight", form.babyWeight],
+        ["Baby heart rate", form.babyHeartRate], ["Cervical length", form.cervicalLength],
+        ["Previous complications", form.previousComplications],
+        ["Pre-existing diabetes", form.preexistingDiabetes],
+        ["Gestational diabetes", form.gestationalDiabetes], ["Mental health support", form.mentalHealth],
+      ];
+      const missing = requiredFields.find(([, value]) => value === "" || value === null || value === undefined);
+      if (missing) throw new Error(`Please complete: ${missing[0]}.`);
 
-    const heightInMeters = Number(form.height) / 100;
+      const heightInMeters = Number(form.height) / 100;
 
-const bmi =
-  heightInMeters > 0
-    ? Number(
-        (
-          Number(form.weight) /
-          (heightInMeters * heightInMeters)
-        ).toFixed(1)
-      )
-    : NaN;
+      const bmi =
+        heightInMeters > 0
+          ? Number(
+            (
+              Number(form.weight) /
+              (heightInMeters * heightInMeters)
+            ).toFixed(1)
+          )
+          : NaN;
       if (!Number.isFinite(bmi)) throw new Error("Enter a valid height and weight to calculate BMI.");
       const payload = {
 
-  age: Number(form.age),
+        age: Number(form.age),
 
-  systolic_bp: Number(form.bpSystolic),
-  diastolic_bp: Number(form.bpDiastolic),
+        systolic_bp: Number(form.bpSystolic),
+        diastolic_bp: Number(form.bpDiastolic),
 
-  blood_sugar: Number(form.sugar),
-  body_temp: Number(form.temperature),
+        blood_sugar: Number(form.sugar),
+        body_temp: Number(form.temperature),
 
-  bmi,
+        bmi,
 
-  heart_rate: Number(form.heartRate),
-
-
-  previous_complications: Number(form.previousComplications),
-  preexisting_diabetes: Number(form.preexistingDiabetes),
-  gestational_diabetes: Number(form.gestationalDiabetes),
-  mental_health: Number(form.mentalHealth),
+        heart_rate: Number(form.heartRate),
 
 
-  pregnancy_week: Number(form.week),
-
-  baby_count: Number(form.babyCount),
-
-  baby_weight: Number(form.babyWeight),
-
-  baby_heart_rate: Number(form.babyHeartRate),
-
-  cervical_length: Number(form.cervicalLength),
+        previous_complications: Number(form.previousComplications),
+        preexisting_diabetes: Number(form.preexistingDiabetes),
+        gestational_diabetes: Number(form.gestationalDiabetes),
+        mental_health: Number(form.mentalHealth),
 
 
+        pregnancy_week: Number(form.week),
 
-  // Symptoms converted to ML format
+        baby_count: Number(form.babyCount),
 
-  headache:
-    form.symptoms.includes("Headache") ? 1 : 0,
+        baby_weight: Number(form.babyWeight),
 
-  nausea:
-    form.symptoms.includes("Nausea") ? 1 : 0,
+        baby_heart_rate: Number(form.babyHeartRate),
 
-  vomiting:
-    form.symptoms.includes("Vomiting") ? 1 : 0,
+        cervical_length: Number(form.cervicalLength),
 
-  swelling:
-    form.symptoms.includes("Swelling") ? 1 : 0,
 
-  blurred_vision:
-    form.symptoms.includes("Blurred Vision") ? 1 : 0,
 
-  bleeding:
-    form.symptoms.includes("Bleeding") ? 1 : 0,
+        // Symptoms converted to ML format
 
-  abdominal_pain:
-    form.symptoms.includes("Abdominal Pain") ? 1 : 0,
+        headache:
+          form.symptoms.includes("Headache") ? 1 : 0,
 
-  reduced_baby_movement:
-    form.symptoms.includes("Reduced Baby Movement") ? 1 : 0,
-  symptoms: form.symptoms
+        nausea:
+          form.symptoms.includes("Nausea") ? 1 : 0,
 
-};
+        vomiting:
+          form.symptoms.includes("Vomiting") ? 1 : 0,
+
+        swelling:
+          form.symptoms.includes("Swelling") ? 1 : 0,
+
+        blurred_vision:
+          form.symptoms.includes("Blurred Vision") ? 1 : 0,
+
+        bleeding:
+          form.symptoms.includes("Bleeding") ? 1 : 0,
+
+        abdominal_pain:
+          form.symptoms.includes("Abdominal Pain") ? 1 : 0,
+
+        reduced_baby_movement:
+          form.symptoms.includes("Reduced Baby Movement") ? 1 : 0,
+        symptoms: form.symptoms
+
+      };
 
 
 
@@ -332,7 +332,7 @@ const bmi =
 
 
       const result =
-      await response.json();
+        await response.json();
 
       if (!response.ok || typeof result.risk_score !== "number") {
         const detail = Array.isArray(result.detail)
@@ -341,10 +341,10 @@ const bmi =
         throw new Error(detail);
       }
 
-    console.log(
-  "422 DETAIL:",
-  JSON.stringify(result.detail, null, 2)
-);
+      console.log(
+        "422 DETAIL:",
+        JSON.stringify(result.detail, null, 2)
+      );
 
 
       console.log(
@@ -366,20 +366,20 @@ const bmi =
 
 
 
-localStorage.setItem(
-  "patientVitals",
-  JSON.stringify({
-    ...payload,
-    week: form.week,
-    weight: form.weight,
-    height: form.height,
-    babyCount: form.babyCount,
-    babyWeight: form.babyWeight,
-    babyHeartRate: form.babyHeartRate,
-    cervicalLength: form.cervicalLength,
-    symptoms: form.symptoms
-  })
-);
+      localStorage.setItem(
+        "patientVitals",
+        JSON.stringify({
+          ...payload,
+          week: form.week,
+          weight: form.weight,
+          height: form.height,
+          babyCount: form.babyCount,
+          babyWeight: form.babyWeight,
+          babyHeartRate: form.babyHeartRate,
+          cervicalLength: form.cervicalLength,
+          symptoms: form.symptoms
+        })
+      );
 
 
 
@@ -400,7 +400,7 @@ localStorage.setItem(
 
     }
 
-    catch(error){
+    catch (error) {
 
 
       console.error(
@@ -412,7 +412,7 @@ localStorage.setItem(
 
     }
 
-    finally{
+    finally {
 
 
       setIsLoading(false);
@@ -429,7 +429,7 @@ localStorage.setItem(
       className="relative min-h-screen overflow-hidden bg-cover bg-center flex"
 
       style={{
-        backgroundImage:`url(${bg})`
+        backgroundImage: `url(${bg})`
       }}
 
     >
@@ -518,7 +518,7 @@ localStorage.setItem(
 
 
           <QuickStat
-            icon={<FaUser/>}
+            icon={<FaUser />}
             label="Age"
             value={form.age || "—"}
             color="pink"
@@ -526,7 +526,7 @@ localStorage.setItem(
 
 
           <QuickStat
-            icon={<FaCalendarAlt/>}
+            icon={<FaCalendarAlt />}
             label="Week"
             value={form.week || "—"}
             color="sky"
@@ -534,24 +534,24 @@ localStorage.setItem(
 
 
           <QuickStat
-            icon={<FaWeight/>}
+            icon={<FaWeight />}
             label="Weight"
             value={
               form.weight
-              ? `${form.weight} kg`
-              :"—"
+                ? `${form.weight} kg`
+                : "—"
             }
             color="purple"
           />
 
 
           <QuickStat
-            icon={<FaHeart/>}
+            icon={<FaHeart />}
             label="Heart Rate"
             value={
               form.heartRate
-              ? `${form.heartRate} bpm`
-              :"—"
+                ? `${form.heartRate} bpm`
+                : "—"
             }
             color="red"
           />
@@ -606,8 +606,8 @@ localStorage.setItem(
             <InputField
               label="Age (years)"
               value={form.age}
-              icon={<FaUser/>}
-              onChange={(e)=>
+              icon={<FaUser />}
+              onChange={(e) =>
                 updateField(
                   "age",
                   e.target.value
@@ -621,8 +621,8 @@ localStorage.setItem(
             <InputField
               label="Pregnancy Week"
               value={form.week}
-              icon={<FaCalendarAlt/>}
-              onChange={(e)=>
+              icon={<FaCalendarAlt />}
+              onChange={(e) =>
                 updateField(
                   "week",
                   e.target.value
@@ -636,8 +636,8 @@ localStorage.setItem(
             <InputField
               label="Weight (kg)"
               value={form.weight}
-              icon={<FaWeight/>}
-              onChange={(e)=>
+              icon={<FaWeight />}
+              onChange={(e) =>
                 updateField(
                   "weight",
                   e.target.value
@@ -645,25 +645,25 @@ localStorage.setItem(
               }
               placeholder="68"
             />
-          <InputField
-  label="Height (cm)"
-  value={form.height}
-  icon={<FaRuler />}
-  onChange={(e) =>
-    updateField(
-      "height",
-      e.target.value
-    )
-  }
-  placeholder="165"
-/>
+            <InputField
+              label="Height (cm)"
+              value={form.height}
+              icon={<FaRuler />}
+              onChange={(e) =>
+                updateField(
+                  "height",
+                  e.target.value
+                )
+              }
+              placeholder="165"
+            />
 
 
             <InputField
               label="Pre Pregnancy Weight"
               value={form.prePregnancyWeight}
-              icon={<FaWeight/>}
-              onChange={(e)=>
+              icon={<FaWeight />}
+              onChange={(e) =>
                 updateField(
                   "prePregnancyWeight",
                   e.target.value
@@ -677,8 +677,8 @@ localStorage.setItem(
             <InputField
               label="Heart Rate"
               value={form.heartRate}
-              icon={<FaHeart/>}
-              onChange={(e)=>
+              icon={<FaHeart />}
+              onChange={(e) =>
                 updateField(
                   "heartRate",
                   e.target.value
@@ -692,8 +692,8 @@ localStorage.setItem(
             <InputField
               label="Systolic BP"
               value={form.bpSystolic}
-              icon={<FaTint/>}
-              onChange={(e)=>
+              icon={<FaTint />}
+              onChange={(e) =>
                 updateField(
                   "bpSystolic",
                   e.target.value
@@ -707,8 +707,8 @@ localStorage.setItem(
             <InputField
               label="Diastolic BP"
               value={form.bpDiastolic}
-              icon={<FaTint/>}
-              onChange={(e)=>
+              icon={<FaTint />}
+              onChange={(e) =>
                 updateField(
                   "bpDiastolic",
                   e.target.value
@@ -722,8 +722,8 @@ localStorage.setItem(
             <InputField
               label="Blood Sugar"
               value={form.sugar}
-              icon={<FaTint/>}
-              onChange={(e)=>
+              icon={<FaTint />}
+              onChange={(e) =>
                 updateField(
                   "sugar",
                   e.target.value
@@ -737,8 +737,8 @@ localStorage.setItem(
             <InputField
               label="Temperature"
               value={form.temperature}
-              icon={<FaThermometerHalf/>}
-              onChange={(e)=>
+              icon={<FaThermometerHalf />}
+              onChange={(e) =>
                 updateField(
                   "temperature",
                   e.target.value
@@ -749,8 +749,8 @@ localStorage.setItem(
             <InputField
               label="Number of Babies"
               value={form.babyCount}
-              icon={<FaBaby/>}
-              onChange={(e)=>
+              icon={<FaBaby />}
+              onChange={(e) =>
                 updateField(
                   "babyCount",
                   e.target.value
@@ -763,8 +763,8 @@ localStorage.setItem(
             <InputField
               label="Baby Weight (grams)"
               value={form.babyWeight}
-              icon={<FaWeight/>}
-              onChange={(e)=>
+              icon={<FaWeight />}
+              onChange={(e) =>
                 updateField(
                   "babyWeight",
                   e.target.value
@@ -777,8 +777,8 @@ localStorage.setItem(
             <InputField
               label="Baby Heart Rate"
               value={form.babyHeartRate}
-              icon={<FaHeartbeat/>}
-              onChange={(e)=>
+              icon={<FaHeartbeat />}
+              onChange={(e) =>
                 updateField(
                   "babyHeartRate",
                   e.target.value
@@ -791,8 +791,8 @@ localStorage.setItem(
             <InputField
               label="Cervical Length (mm)"
               value={form.cervicalLength}
-              icon={<FaRuler/>}
-              onChange={(e)=>
+              icon={<FaRuler />}
+              onChange={(e) =>
                 updateField(
                   "cervicalLength",
                   e.target.value
@@ -876,7 +876,7 @@ localStorage.setItem(
           ">
 
 
-            {symptomsList.map((symptom)=>(
+            {symptomsList.map((symptom) => (
 
 
               <SymptomCard
@@ -889,7 +889,7 @@ localStorage.setItem(
                   form.symptoms.includes(symptom)
                 }
 
-                onClick={()=>
+                onClick={() =>
                   toggleSymptom(symptom)
                 }
 
@@ -928,7 +928,7 @@ localStorage.setItem(
 
             disabled={
               isLoading ||
-              form.symptoms.length===0
+              form.symptoms.length === 0
             }
 
 
@@ -953,31 +953,31 @@ localStorage.setItem(
             {
               isLoading ?
 
-              (
-                <>
-                  <span className="animate-spin">
-                    ⏳
-                  </span>
+                (
+                  <>
+                    <span className="animate-spin">
+                      ⏳
+                    </span>
 
-                  Analyzing...
-                </>
+                    Analyzing...
+                  </>
 
-              )
+                )
 
-              :
+                :
 
-              (
+                (
 
-                <>
+                  <>
 
-                <FaShieldAlt/>
+                    <FaShieldAlt />
 
-                Analyze Pregnancy Risk
+                    Analyze Pregnancy Risk
 
-                </>
+                  </>
 
 
-              )
+                )
 
             }
 
@@ -993,38 +993,38 @@ localStorage.setItem(
           <button
 
 
-            onClick={()=>{
+            onClick={() => {
 
 
               setForm({
 
-                age:"",
-                week:"",
-                weight:"",
-                prePregnancyWeight:"",
-                height:"",
+                age: "",
+                week: "",
+                weight: "",
+                prePregnancyWeight: "",
+                height: "",
 
-                babyCount:"1",
+                babyCount: "1",
 
-                bpSystolic:"",
-                bpDiastolic:"",
+                bpSystolic: "",
+                bpDiastolic: "",
 
-                heartRate:"",
+                heartRate: "",
 
-                sugar:"",
+                sugar: "",
 
-                temperature:"",
+                temperature: "",
 
-                babyWeight:"",
-                babyHeartRate:"",
-                cervicalLength:"",
+                babyWeight: "",
+                babyHeartRate: "",
+                cervicalLength: "",
 
-                previousComplications:"",
-                preexistingDiabetes:"",
-                gestationalDiabetes:"",
-                mentalHealth:"",
+                previousComplications: "",
+                preexistingDiabetes: "",
+                gestationalDiabetes: "",
+                mentalHealth: "",
 
-                symptoms:[]
+                symptoms: []
 
               });
 
@@ -1063,7 +1063,7 @@ localStorage.setItem(
 
 
         {
-          form.symptoms.length===0 &&
+          form.symptoms.length === 0 &&
           !isLoading &&
 
           (
@@ -1235,8 +1235,7 @@ const SymptomCard = ({
       text-sm font-medium
       transition-all duration-300
 
-      ${
-        selected
+      ${selected
 
         ?
 
