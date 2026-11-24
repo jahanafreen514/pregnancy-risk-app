@@ -40,6 +40,9 @@ async def verify_doctor_certificate(
 ) -> CompleteVerificationResult:
     """
     Stage 1 to 5 Combined Intelligent Verification Pipeline.
+    The AI extracts data, detects fraud, and calculates an explainable confidence score.
+    IMPORTANT: The AI acts as an advisor to the human administrator.
+    It NEVER auto-rejects a profile; final approval and rejection are 100% controlled by the admin.
     """
     reasons: List[str] = []
     warnings: List[str] = []
@@ -50,12 +53,12 @@ async def verify_doctor_certificate(
     quality_res: DocumentQualityResult = validate_document_quality(image_path)
 
     if not quality_res.is_valid:
-        # Severe document failure (blank, corrupt, tiny)
         warnings.extend(quality_res.issues)
+        # Keep status as manual_verification_required so the admin sees the upload and can decide
         return CompleteVerificationResult(
-            verification_status="rejected",
+            verification_status="manual_verification_required",
             is_verified=False,
-            composite_confidence_score=0.0,
+            composite_confidence_score=quality_res.quality_score,
             quality_score=quality_res.quality_score,
             ocr_confidence=0.0,
             name_match_score=0.0,
@@ -65,12 +68,12 @@ async def verify_doctor_certificate(
             extracted_issuing_authority=None,
             extracted_qualifications=[],
             extracted_registration_date=None,
-            certificate_type="Invalid Document",
+            certificate_type="Unrecognized / Blurry Document",
             ocr_extracted_text="",
             certificate_file_hash="",
             verification_reasons=[],
             verification_warnings=warnings,
-            admin_review_notes="Auto-rejected: Uploaded file is unreadable, blank, or corrupted."
+            admin_review_notes="AI Notice: Uploaded file appears blank, blurry, or unrecognized. Admin review required."
         )
 
     if quality_res.is_blurry:
@@ -128,12 +131,6 @@ async def verify_doctor_certificate(
     # -------------------------------------------------------------
     # STAGE 5: Explainable Composite Scoring & Status Assignment
     # -------------------------------------------------------------
-    # Weights:
-    # - Quality: 15%
-    # - OCR Readability: 15%
-    # - Name Match: 35%
-    # - License Extraction & Format: 25%
-    # - Qualifications/Council: 10%
     score = (
         (quality_res.quality_score * 0.15) +
         (ocr_conf * 0.15) +
@@ -150,24 +147,20 @@ async def verify_doctor_certificate(
 
     composite_score = max(0.0, min(100.0, round(score, 2)))
 
-    # Determine Status
-    if fraud_res.is_duplicate or composite_score < 40.0:
-        status = "rejected"
-        is_verified = False
-        notes = "Certificate verification failed. Please upload a clear, authentic medical registration certificate."
-    elif composite_score >= 88.0 and fraud_res.name_matched and fraud_res.license_format_valid:
-        # High confidence AI review
+    # Determine Status:
+    # High confidence (>= 85%) -> 'ai_reviewed' (AI recommends approval, awaiting admin 1-click confirmation)
+    # Low confidence or discrepancies -> 'manual_verification_required' (AI flags warnings, awaiting admin review)
+    # Note: Status NEVER becomes 'rejected' automatically. Rejections must be made by the Admin!
+    if composite_score >= 85.0 and fraud_res.name_matched and fraud_res.license_format_valid:
         status = "ai_reviewed"
-        is_verified = False  # Keep false until Admin approves, preserving medical compliance
-        notes = "AI Review passed with high confidence. Awaiting final administrative approval."
+        notes = "AI Review passed with high confidence. Recommended for Admin Approval."
     else:
         status = "manual_verification_required"
-        is_verified = False
-        notes = "Certificate requires manual admin review due to name variation or document quality."
+        notes = "AI Review flagged discrepancies or unverified credentials. Awaiting Admin Review and final decision."
 
     return CompleteVerificationResult(
         verification_status=status,
-        is_verified=is_verified,
+        is_verified=False,  # Always False until Admin approves
         composite_confidence_score=composite_score,
         quality_score=quality_res.quality_score,
         ocr_confidence=round(ocr_conf, 2),

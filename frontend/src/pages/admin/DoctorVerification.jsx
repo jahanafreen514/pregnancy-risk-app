@@ -77,47 +77,45 @@ function DoctorVerification() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "ai_reviewed":
-        return (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-            <FaShieldAlt /> AI Review Completed
-          </span>
-        );
       case "approved":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
-            <FaCheckCircle /> Verified Doctor
+            <FaCheckCircle /> Approved & Verified
           </span>
         );
       case "rejected":
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700 border border-red-200">
-            <FaTimesCircle /> Rejected
+            <FaTimesCircle /> Rejected by Admin
+          </span>
+        );
+      case "ai_reviewed":
+        return (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+            <FaShieldAlt /> AI Match: Ready for Admin Stamp
           </span>
         );
       case "manual_verification_required":
-        return (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-            <FaExclamationTriangle /> Manual Review Required
-          </span>
-        );
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-            <FaClock /> Pending OCR
+          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+            <FaExclamationTriangle /> Awaiting Admin Decision
           </span>
         );
     }
   };
 
   const getScoreColor = (score) => {
-    if (score >= 88) return "text-emerald-600 bg-emerald-50 border-emerald-200";
-    if (score >= 65) return "text-amber-600 bg-amber-50 border-amber-200";
+    if (score >= 85) return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    if (score >= 60) return "text-amber-600 bg-amber-50 border-amber-200";
     return "text-rose-600 bg-rose-50 border-rose-200";
   };
 
   const filteredDoctors = doctors.filter((doc) => {
     if (filter === "all") return true;
+    if (filter === "needs_review") return doc.verification_status !== "approved" && doc.verification_status !== "rejected";
+    return doc.verification_status === filter;
+  });
     return doc.verification_status === filter;
   });
 
@@ -143,7 +141,7 @@ function DoctorVerification() {
 
         {/* Filter Tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          {["all", "ai_reviewed", "manual_verification_required", "pending"].map((tab) => (
+          {["all", "needs_review", "manual_verification_required", "ai_reviewed", "approved", "rejected"].map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
@@ -153,7 +151,7 @@ function DoctorVerification() {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {tab.replace(/_/g, " ")} ({tab === "all" ? doctors.length : doctors.filter((d) => d.verification_status === tab).length})
+              {tab.replace(/_/g, " ")} ({tab === "all" ? doctors.length : tab === "needs_review" ? doctors.filter((d) => d.verification_status !== "approved" && d.verification_status !== "rejected").length : doctors.filter((d) => d.verification_status === tab).length})
             </button>
           ))}
           <button

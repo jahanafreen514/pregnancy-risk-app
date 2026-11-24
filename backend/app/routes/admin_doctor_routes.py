@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.models.doctor_model import DoctorProfile
 from app.models.user_model import User
@@ -16,16 +16,26 @@ router = APIRouter(
 
 @router.get("/pending")
 async def pending_doctors(
+    status: Optional[str] = Query(None, description="Optional status filter"),
     admin: User = Depends(require_roles("admin"))
 ):
     """
-    View all doctors requiring verification:
-    Includes 'pending', 'ai_reviewed', and 'manual_verification_required'.
-    Enriches with registered user profile data for side-by-side verification.
+    View doctors for verification.
+    If status is specified (e.g. 'ai_reviewed', 'manual_verification_required', 'rejected', 'approved'), filters by it.
+    If no status or 'all' is passed, returns all doctors with uploaded documents so admin has full visibility.
     """
-    profiles = await DoctorProfile.find(
-        {"verification_status": {"$in": ["pending", "ai_reviewed", "manual_verification_required"]}}
-    ).to_list()
+    if status and status != "all":
+        query = {"verification_status": status}
+    else:
+        # Return all doctors with uploaded documents or awaiting verification
+        query = {
+            "$or": [
+                {"license_image": {"$ne": None}},
+                {"verification_status": {"$in": ["pending", "ai_reviewed", "manual_verification_required", "rejected", "approved"]}}
+            ]
+        }
+
+    profiles = await DoctorProfile.find(query).to_list()
 
     enriched_doctors = []
     for profile in profiles:
@@ -84,6 +94,8 @@ async def approve_doctor(
     doctor.verified_at = datetime.utcnow()
     if payload and payload.admin_review_notes:
         doctor.admin_review_notes = payload.admin_review_notes
+    else:
+        doctor.admin_review_notes = f"Approved and verified by administrator ({admin.name})."
 
     doctor.updated_at = datetime.utcnow()
     await doctor.save()
@@ -92,7 +104,8 @@ async def approve_doctor(
         "message": "Doctor approved successfully",
         "doctor_id": str(doctor.id),
         "verification_status": doctor.verification_status,
-        "is_verified": doctor.is_verified
+        "is_verified": doctor.is_verified,
+        "admin_review_notes": doctor.admin_review_notes
     }
 
 
@@ -102,7 +115,7 @@ async def reject_doctor(
     payload: Optional[AdminReviewRequest] = None,
     admin: User = Depends(require_roles("admin"))
 ):
-    """Reject a doctor's credentials with optional explanation notes."""
+    """Reject a doctor's credentials with explicit explanation notes."""
     doctor = await DoctorProfile.get(doctor_id)
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
@@ -112,7 +125,7 @@ async def reject_doctor(
     if payload and payload.admin_review_notes:
         doctor.admin_review_notes = payload.admin_review_notes
     else:
-        doctor.admin_review_notes = "Certificate verification rejected by administrator."
+        doctor.admin_review_notes = f"Rejected by administrator ({admin.name}). Please re-upload authentic credentials."
 
     doctor.updated_at = datetime.utcnow()
     await doctor.save()
@@ -137,9 +150,9 @@ async def request_reupload(
         raise HTTPException(status_code=404, detail="Doctor not found")
 
     doctor.is_verified = False
-    doctor.verification_status = "rejected"
+    doctor.verification_status = "manual_verification_required"
     reason = payload.admin_review_notes if (payload and payload.admin_review_notes) else "Please re-upload a clear, sharp, uncropped photo of your state medical council certificate."
-    doctor.admin_review_notes = f"Re-upload requested: {reason}"
+    doctor.admin_review_notes = f"Admin request: {reason}"
 
     doctor.updated_at = datetime.utcnow()
     await doctor.save()
