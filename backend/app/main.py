@@ -92,6 +92,24 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc: Exception):
+    import logging
+    logging.getLogger(__name__).exception(f"Unhandled server error on {request.method} {request.url.path}: {exc}")
+    from fastapi.responses import JSONResponse
+    origin = request.headers.get("origin") or "https://pregnancy-risk-app-olive.vercel.app"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc) or "Internal server error"},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "*",
+        }
+    )
+
+
 # ==========================================
 # API ROUTES
 # All routes start with /api
